@@ -4,8 +4,7 @@ void HelloTriangleApplication::createLogicalDevice()
 {
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
 
-    // get the first index into queueFamilyProperties which supports both graphics and present
-    uint32_t queueIndex = ~0;
+    
     for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
     {
         if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&

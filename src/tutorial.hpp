@@ -21,7 +21,7 @@ import vulkan_hpp;
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
-
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<char const *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 
@@ -59,6 +59,7 @@ private:
     std::vector<vk::raii::ImageView> swapChainImageViews;
     vk::raii::PipelineLayout pipelineLayout = nullptr;
     vk::raii::Pipeline graphicsPipeline = nullptr;
+    //
     vk::raii::CommandPool commandPool = nullptr;
     vk::raii::CommandBuffer commandBuffer = nullptr;
     //
@@ -101,7 +102,9 @@ private:
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
+            drawFrame();
         }
+        device.waitIdle(); // wait for device to finish operations before destroying resources
     }
 
     void cleanup()
@@ -137,6 +140,15 @@ private:
     void createCommandPool();
     void createCommandBuffer();
     void createSyncObjects();
+    void recordCommandBuffer(uint32_t imageIndex);
+    void transition_image_layout(
+        uint32_t imageIndex,
+        vk::ImageLayout oldLayout,
+        vk::ImageLayout newLayout,
+        vk::AccessFlags2 srcAccessMask,
+        vk::AccessFlags2 dstAccessMask,
+        vk::PipelineStageFlags2 srcStageMask,
+        vk::PipelineStageFlags2 dstStageMask);
     // Waiting for the previous frame
     void drawFrame();
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;

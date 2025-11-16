@@ -9,7 +9,7 @@ void HelloTriangleApplication::createCommandPool()
 void HelloTriangleApplication::createCommandBuffers()
 {
     commandBuffers.clear();
-    vk::CommandBufferAllocateInfo allocInfo{.commandPool = *commandPool,
+    vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool,
                                             .level = vk::CommandBufferLevel::ePrimary,
                                             .commandBufferCount = MAX_FRAMES_IN_FLIGHT};
     commandBuffers = vk::raii::CommandBuffers(device, allocInfo);
@@ -98,21 +98,35 @@ void HelloTriangleApplication::createSyncObjects()
     presentCompleteSemaphores.clear();
     renderFinishedSemaphores.clear();
     inFlightFences.clear();
+    presentCompleteSemaphores.reserve(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         presentCompleteSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
-        renderFinishedSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
-    }
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
         inFlightFences.emplace_back(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+    }
+
+    renderFinishedSemaphores.reserve(swapChainImages.size());
+    for (size_t i = 0; i < swapChainImages.size(); ++i)
+    {
+        renderFinishedSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
     }
 }
 void HelloTriangleApplication::drawFrame()
 {
     while (vk::Result::eTimeout == device.waitForFences(*inFlightFences[currentFrame], vk::True, UINT64_MAX))
         ;
-    auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[semaphoreIndex], nullptr);
+    auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[currentFrame], nullptr);
+    // suboptimal or out of date swapchain
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized)
+    {
+        framebufferResized = false;
+        recreateSwapChain();
+    }
+    else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+    {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
     // record command buffer
     device.resetFences(*inFlightFences[currentFrame]);
     commandBuffers[currentFrame].reset();
@@ -120,7 +134,7 @@ void HelloTriangleApplication::drawFrame()
 
     // submit command buffer
     vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1, .pWaitSemaphores = &*presentCompleteSemaphores[semaphoreIndex], .pWaitDstStageMask = &waitDestinationStageMask, .commandBufferCount = 1, .pCommandBuffers = &*commandBuffers[currentFrame], .signalSemaphoreCount = 1, .pSignalSemaphores = &*renderFinishedSemaphores[imageIndex]};
+    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1, .pWaitSemaphores = &*presentCompleteSemaphores[currentFrame], .pWaitDstStageMask = &waitDestinationStageMask, .commandBufferCount = 1, .pCommandBuffers = &*commandBuffers[currentFrame], .signalSemaphoreCount = 1, .pSignalSemaphores = &*renderFinishedSemaphores[imageIndex]};
     //
     queue.submit(submitInfo, *inFlightFences[currentFrame]);
 
@@ -128,15 +142,14 @@ void HelloTriangleApplication::drawFrame()
     result = queue.presentKHR(presentInfoKHR);
     switch (result)
     {
-    case vk::Result::eSuccess:
-        break;
     case vk::Result::eSuboptimalKHR:
-        std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
+    case vk::Result::eErrorOutOfDateKHR:
+        recreateSwapChain();
+        break;
+    case vk::Result::eSuccess:
         break;
     default:
         break; // an unexpected result is returned!
     }
-    semaphoreIndex = (semaphoreIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-

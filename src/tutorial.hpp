@@ -61,11 +61,13 @@ private:
     vk::raii::Pipeline graphicsPipeline = nullptr;
     //
     vk::raii::CommandPool commandPool = nullptr;
-    vk::raii::CommandBuffer commandBuffer = nullptr;
+    std::vector<vk::raii::CommandBuffer> commandBuffers;
     //
-    vk::raii::Semaphore presentCompleteSemaphore = nullptr;
-    vk::raii::Semaphore renderFinishedSemaphore = nullptr;
-    vk::raii::Fence drawFence = nullptr;
+    std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
+    std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+    std::vector<vk::raii::Fence> inFlightFences;
+    uint32_t currentFrame = 0;
+    uint32_t semaphoreIndex = 0;
     std::vector<const char *> requiredDeviceExtension = {
         vk::KHRSwapchainExtensionName,
         vk::KHRSpirv14ExtensionName,
@@ -93,7 +95,7 @@ private:
         createImageViews();
         createGraphicsPipeline();
         createCommandPool();
-        createCommandBuffer();
+        createCommandBuffers();
         createSyncObjects();
     }
 
@@ -109,6 +111,8 @@ private:
 
     void cleanup()
     {
+        cleanupSwapChain();
+
         glfwDestroyWindow(window);
 
         glfwTerminate();
@@ -138,7 +142,7 @@ private:
 
     void createGraphicsPipeline();
     void createCommandPool();
-    void createCommandBuffer();
+    void createCommandBuffers();
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);
     void transition_image_layout(
@@ -151,6 +155,9 @@ private:
         vk::PipelineStageFlags2 dstStageMask);
     // Waiting for the previous frame
     void drawFrame();
+    // recreate swap chain
+    void recreateSwapChain();
+    void cleanupSwapChain();
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
     static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
     {

@@ -50,9 +50,15 @@ struct Vertex
 };
 
 const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
 class HelloTriangleApplication
 {
 public:
@@ -85,6 +91,8 @@ private:
     vk::raii::CommandPool commandPool = nullptr;
     vk::raii::Buffer vertexBuffer = nullptr;
     vk::raii::DeviceMemory vertexBufferMemory = nullptr;
+    vk::raii::Buffer indexBuffer = nullptr;
+    vk::raii::DeviceMemory indexBufferMemory = nullptr;
 
     std::vector<vk::raii::CommandBuffer> commandBuffers;
     //
@@ -122,6 +130,7 @@ private:
         createGraphicsPipeline();
         createCommandPool();
         createVertexBuffer();
+        createIndexBuffer();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -174,6 +183,8 @@ private:
     void createGraphicsPipeline();
     void createCommandPool();
     void createVertexBuffer();
+    void createIndexBuffer();
+
     void createCommandBuffers();
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);

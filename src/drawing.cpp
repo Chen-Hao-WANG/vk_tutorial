@@ -49,8 +49,10 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     commandBuffers[currentFrame].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChainExtent));
     // bind vertex buffer
     commandBuffers[currentFrame].bindVertexBuffers(0, *vertexBuffer, {0});
+    commandBuffers[currentFrame].bindIndexBuffer( *indexBuffer, 0, vk::IndexType::eUint16 );
+
     // draw call
-    commandBuffers[currentFrame].draw(3, 1, 0, 0);
+commandBuffers[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0);
     // Finishing up
     commandBuffers[currentFrame].endRendering();
     // After rendering, transition the swapchain image to PRESENT_SRC

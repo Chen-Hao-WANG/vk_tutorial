@@ -39,9 +39,13 @@ constexpr bool enableValidationLayers = true;
 #endif
 struct Vertex
 {
+
     glm::vec2 pos;
     glm::vec3 color;
-
+    // tell vulkan how to pass this data to vertex shader once it's been uploaded into GPU memory
+    // we need two structures need to tell
+    // 1. VertexInputBindingDescription : input rate
+    // 2. VertexInputAttributeDescription : 
     static vk::VertexInputBindingDescription getBindingDescription()
     {
         return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};

@@ -2,12 +2,17 @@
 
 void HelloTriangleApplication::createCommandPool()
 {
+    // we have to create command pool before creating command buffers
+    // command pool manages the memory for command buffers
     vk::CommandPoolCreateInfo poolInfo{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
                                        .queueFamilyIndex = queueIndex};
     commandPool = vk::raii::CommandPool(device, poolInfo);
 }
 void HelloTriangleApplication::createCommandBuffers()
 {
+    // 1. allocate command buffers from the command pool
+    // 2. decide level and number of command buffers
+
     commandBuffers.clear();
     vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool,
                                             .level = vk::CommandBufferLevel::ePrimary,
@@ -17,9 +22,14 @@ void HelloTriangleApplication::createCommandBuffers()
 
 void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
 {
+    // command buffer recording are used for draww operations and mamory transfer
+    // those are not directly use vulkan funtion calls
+    // but recorded into command buffers which are then submitted to queue for execution
     commandBuffers[currentFrame].begin({});
     // Starting dynamic rendering
-    //  Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
+    //  Before starting rendering, transition the swapchain image layout for rendering
+    // in Vulkan, image can be in a layout optimal for specific operations
+    // we need to transition the image layout to the appropriate layout before rendering
     transition_image_layout(
         imageIndex,
         vk::ImageLayout::eUndefined,
@@ -29,11 +39,15 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
         vk::PipelineStageFlagBits2::eColorAttachmentOutput  // dstStage
     );
+    // setup color attachment
     vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
     vk::RenderingAttachmentInfo attachmentInfo = {
+        // which image view to render to
         .imageView = swapChainImageViews[imageIndex],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        // what to do before rendering
         .loadOp = vk::AttachmentLoadOp::eClear,
+        // what to do after rendering
         .storeOp = vk::AttachmentStoreOp::eStore,
         .clearValue = clearColor};
     // set up rendering info
@@ -42,6 +56,8 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         .layerCount = 1,
         .colorAttachmentCount = 1,
         .pColorAttachments = &attachmentInfo};
+
+    /* ---begin rendering--- */
     commandBuffers[currentFrame].beginRendering(renderingInfo);
     // basic drawing commands
     commandBuffers[currentFrame].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
@@ -54,8 +70,10 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     // draw call
     commandBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
     commandBuffers[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0); // Finishing up
+    /* ---end rendering--- */
     commandBuffers[currentFrame].endRendering();
-    // After rendering, transition the swapchain image to PRESENT_SRC
+    
+    // After rendering, transition the image layout for presentation
     transition_image_layout(
         imageIndex,
         vk::ImageLayout::eColorAttachmentOptimal,
@@ -65,6 +83,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
         vk::PipelineStageFlagBits2::eBottomOfPipe           // dstStage
     );
+    // end command buffer recording
     commandBuffers[currentFrame].end();
 }
 void HelloTriangleApplication::transition_image_layout(

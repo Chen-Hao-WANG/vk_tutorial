@@ -122,7 +122,9 @@ private:
     //
     std::vector<vk::raii::Semaphore> presentCompleteSemaphore;
     std::vector<vk::raii::Semaphore> renderFinishedSemaphore;
+    // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
+    //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
     uint32_t semaphoreIndex = 0;

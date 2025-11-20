@@ -10,9 +10,12 @@ void HelloTriangleApplication::createCommandPool()
 }
 void HelloTriangleApplication::createCommandBuffers()
 {
-    // 1. allocate command buffers from the command pool
-    // 2. decide level and number of command buffers
-
+    /*
+    1. allocate command buffers from the command pool
+    2. decide level and number of command buffers
+    3. depend on how many things we want to do in parallel
+    4. by now we use MAX_FRAMES_IN_FLIGHT to decide the number of command buffers, because we want to record command buffers for each frame in flight
+    */
     commandBuffers.clear();
     vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool,
                                             .level = vk::CommandBufferLevel::ePrimary,
@@ -60,7 +63,9 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     /* ---begin rendering--- */
     commandBuffers[currentFrame].beginRendering(renderingInfo);
     // basic drawing commands
+    // tell vulkan what to do by binding command buffers to graphics pipeline
     commandBuffers[currentFrame].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
+    // we specify the viewport and scissor dynamically so we need to set them here
     commandBuffers[currentFrame].setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChainExtent.width), static_cast<float>(swapChainExtent.height), 0.0f, 1.0f));
     commandBuffers[currentFrame].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChainExtent));
     // bind vertex buffer
@@ -72,7 +77,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     commandBuffers[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0); // Finishing up
     /* ---end rendering--- */
     commandBuffers[currentFrame].endRendering();
-    
+
     // After rendering, transition the image layout for presentation
     transition_image_layout(
         imageIndex,
@@ -119,9 +124,22 @@ void HelloTriangleApplication::transition_image_layout(
 }
 void HelloTriangleApplication::createSyncObjects()
 {
+    /*
+    1. decide fence(CPU, the host needs to know when the GPU has finished something) or semaphore to use
+    2. what operations to synchronize
+    3. how many synchronization objects are needed
+    4. create synchronization objects
+    */
+    /*
+    1. a semaphore to signal when an image has been acquired and is ready for rendering
+    2. a semaphore to signal when rendering is finished and the image is ready for presentation
+    3. a fence to ensure that the CPU waits for the GPU to finish rendering before starting the next frame
+    */
+    // clean up old synchronization objects if they exist
     presentCompleteSemaphore.clear();
     renderFinishedSemaphore.clear();
     inFlightFences.clear();
+    // create new synchronization objects
     presentCompleteSemaphore.reserve(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -138,8 +156,18 @@ void HelloTriangleApplication::createSyncObjects()
 }
 void HelloTriangleApplication::drawFrame()
 {
+    /*
+    1. require fence to ensure that the CPU waits for the GPU to finish rendering before starting the next frame
+    2. acquire an image from the swap chain
+    3. update the uniform buffer
+    4. record command buffer
+    5. submit the command buffer
+    6. present the image
+    7. advance to the next frame
+    */
     while (vk::Result::eTimeout == device.waitForFences(*inFlightFences[currentFrame], vk::True, UINT64_MAX))
         ;
+    // wait until the previous frame is finished
     auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore[semaphoreIndex], nullptr);
 
     if (result == vk::Result::eErrorOutOfDateKHR)
@@ -161,9 +189,10 @@ void HelloTriangleApplication::drawFrame()
 
     // submit command buffer
     vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1, .pWaitSemaphores = &*presentCompleteSemaphore[semaphoreIndex], .pWaitDstStageMask = &waitDestinationStageMask, .commandBufferCount = 1, .pCommandBuffers = &*commandBuffers[currentFrame], .signalSemaphoreCount = 1, .pSignalSemaphores = &*renderFinishedSemaphore[imageIndex]}; //
+    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1, .pWaitSemaphores = &*presentCompleteSemaphore[semaphoreIndex], .pWaitDstStageMask = &waitDestinationStageMask, .commandBufferCount = 1, .pCommandBuffers = &*commandBuffers[currentFrame], .signalSemaphoreCount = 1, .pSignalSemaphores = &*renderFinishedSemaphore[imageIndex]};
     queue.submit(submitInfo, *inFlightFences[currentFrame]);
 
+    //  submitting the result back to the swap chain to have it eventually show up on the screen
     try
     {
         const vk::PresentInfoKHR presentInfoKHR{.waitSemaphoreCount = 1, .pWaitSemaphores = &*renderFinishedSemaphore[imageIndex], .swapchainCount = 1, .pSwapchains = &*swapChain, .pImageIndices = &imageIndex};

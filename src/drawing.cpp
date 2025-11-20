@@ -140,18 +140,19 @@ void HelloTriangleApplication::createSyncObjects()
     renderFinishedSemaphore.clear();
     inFlightFences.clear();
     // create new synchronization objects
-    presentCompleteSemaphore.reserve(MAX_FRAMES_IN_FLIGHT);
+    presentCompleteSemaphore.reserve(swapChainImages.size());
+    renderFinishedSemaphore.reserve(swapChainImages.size());
     inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT);
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+
+    for (size_t i = 0; i <  swapChainImages.size(); i++)
     {
         presentCompleteSemaphore.emplace_back(device, vk::SemaphoreCreateInfo());
-        inFlightFences.emplace_back(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+        renderFinishedSemaphore.emplace_back(device, vk::SemaphoreCreateInfo());
     }
 
-    renderFinishedSemaphore.reserve(swapChainImages.size());
-    for (size_t i = 0; i < swapChainImages.size(); ++i)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        renderFinishedSemaphore.emplace_back(device, vk::SemaphoreCreateInfo());
+        inFlightFences.emplace_back(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
     }
 }
 void HelloTriangleApplication::drawFrame()

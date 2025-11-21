@@ -7,6 +7,11 @@ void HelloTriangleApplication::createDescriptorSetLayout()
 }
 void HelloTriangleApplication::createUniformBuffers()
 {
+    /*
+    we map the uniform buffer memory right after creating it and keep it mapped for the whole duration of the program. 
+    this is called "persistent mapping"
+    but careful for performance because mapping is not free, so avoid frequent mapping and unmapping
+    */
     uniformBuffers.clear();
     uniformBuffersMemory.clear();
     uniformBuffersMapped.clear();
@@ -24,6 +29,11 @@ void HelloTriangleApplication::createUniformBuffers()
 }
 void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage)
 {
+    /*
+    1. using uniform buffer object to pass transformation matrices to the vertex shader
+    2. it is not efficient to update the uniform buffer every frame for multiple frames in flight, better to use push constants or dynamic uniform buffers for larger data
+    3. here we just use a simple example to demonstrate how to update the uniform buffer
+    */
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();

@@ -2,12 +2,27 @@
 
 void HelloTriangleApplication::createVertexBuffer()
 {
+    /*
+    Create two ver
+    */
+    /*
+    1. create buffer in VK need to fill VkBufferCreateInfo structure
+    2. size : size of buffer in bytes
+    3. usage : what the buffer will be used for (vertex buffer, index buffer, uniform buffer, etc.)
+    4. sharingMode : how the buffer will be accessed (exclusive or concurrent)
+    5. allocate memory for the buffer
+    6. bind the buffer with the allocated memory
+    */
+
+    // specify a staging buffer to upload data to GPU memory
     vk::BufferCreateInfo stagingInfo{.size = sizeof(vertices[0]) * vertices.size(), .usage = vk::BufferUsageFlagBits::eTransferSrc, .sharingMode = vk::SharingMode::eExclusive};
     vk::raii::Buffer stagingBuffer = vk::raii::Buffer(device, stagingInfo);
+    // allocate memory for staging buffer
     vk::MemoryRequirements memRequirementsStaging = stagingBuffer.getMemoryRequirements();
     vk::MemoryAllocateInfo memoryAllocateInfoStaging{.allocationSize = memRequirementsStaging.size, .memoryTypeIndex = findMemoryType(memRequirementsStaging.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)};
     vk::raii::DeviceMemory stagingBufferMemory(device, memoryAllocateInfoStaging);
     stagingBuffer.bindMemory(stagingBufferMemory, 0);
+    // copy vertex data to staging buffer
     void *dataStaging = stagingBufferMemory.mapMemory(0, stagingInfo.size);
     memcpy(dataStaging, vertices.data(), stagingInfo.size);
     stagingBufferMemory.unmapMemory();
@@ -48,6 +63,11 @@ void HelloTriangleApplication::createBuffer(vk::DeviceSize size, vk::BufferUsage
 }
 void HelloTriangleApplication::copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
 {
+    /*
+    copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like drawing commands
+
+    */
+   // create a temporary command buffer for copy operation
     vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
     vk::raii::CommandBuffer commandCopyBuffer = std::move(device.allocateCommandBuffers(allocInfo).front());
     // start recording command buffer

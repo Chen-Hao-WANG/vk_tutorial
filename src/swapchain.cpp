@@ -50,18 +50,19 @@ vk::Extent2D HelloTriangleApplication::chooseSwapExtent(const vk::SurfaceCapabil
 void HelloTriangleApplication::recreateSwapChain()
 {
     int width = 0, height = 0;
-		glfwGetFramebufferSize(window, &width, &height);
-		while (width == 0 || height == 0)
-		{
-			glfwGetFramebufferSize(window, &width, &height);
-			glfwWaitEvents();
-		}
+    glfwGetFramebufferSize(window, &width, &height);
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
 
-		device.waitIdle();
-
-		cleanupSwapChain();
-		createSwapChain();
-		createImageViews();
+    device.waitIdle();
+    //
+    cleanupSwapChain();
+    //
+    createSwapChain();
+    createImageViews();
 }
 void HelloTriangleApplication::cleanupSwapChain()
 {

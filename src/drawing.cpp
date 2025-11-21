@@ -68,12 +68,13 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     // we specify the viewport and scissor dynamically so we need to set them here
     commandBuffers[currentFrame].setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChainExtent.width), static_cast<float>(swapChainExtent.height), 0.0f, 1.0f));
     commandBuffers[currentFrame].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChainExtent));
-    // bind vertex buffer
+    // bind vertex and index buffer
     commandBuffers[currentFrame].bindVertexBuffers(0, *vertexBuffer, {0});
     commandBuffers[currentFrame].bindIndexBuffer(*indexBuffer, 0, vk::IndexType::eUint16);
 
     // draw call
     commandBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
+    // use drawIndexed to draw with index buffer, instead of vkCmdDraw
     commandBuffers[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0); // Finishing up
     /* ---end rendering--- */
     commandBuffers[currentFrame].endRendering();
@@ -180,7 +181,7 @@ void HelloTriangleApplication::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-    // update uniform buffer
+    // update uniform buffer before submitting the next frame
     updateUniformBuffer(currentFrame);
 
     // record command buffer
@@ -200,7 +201,9 @@ void HelloTriangleApplication::drawFrame()
         result = queue.presentKHR(presentInfoKHR);
         if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized)
         {
+            // need to do this after queueupresentKHR, or semaphores will not work correctly
             framebufferResized = false;
+            //
             recreateSwapChain();
         }
         else if (result != vk::Result::eSuccess)

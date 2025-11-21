@@ -45,7 +45,7 @@ struct Vertex
     // tell vulkan how to pass this data to vertex shader once it's been uploaded into GPU memory
     // we need two structures need to tell
     // 1. VertexInputBindingDescription : input rate
-    // 2. VertexInputAttributeDescription : 
+    // 2. VertexInputAttributeDescription :
     static vk::VertexInputBindingDescription getBindingDescription()
     {
         return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
@@ -53,6 +53,9 @@ struct Vertex
 
     static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
     {
+        // binding 0 : position
+        // location 0 : vec2 pos
+        
         return {
             vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color))};
@@ -142,6 +145,8 @@ private:
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
+        
+        // need to do this after queueupresentKHR, or semaphores will not work correctly
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 

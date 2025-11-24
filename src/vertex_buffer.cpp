@@ -54,6 +54,10 @@ uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, vk::Memor
 }
 void HelloTriangleApplication::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer &buffer, vk::raii::DeviceMemory &bufferMemory)
 {
+    /*
+    we want create a host visible buffer that we can map and copy the vertex data to, 
+    then we want to create a device local buffer that will be used as the actual vertex buffer for rendering
+    */
     vk::BufferCreateInfo bufferInfo{.size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive};
     buffer = vk::raii::Buffer(device, bufferInfo);
     vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();

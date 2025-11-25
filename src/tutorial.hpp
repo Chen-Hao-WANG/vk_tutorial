@@ -57,7 +57,7 @@ struct Vertex
     {
         // binding 0 : position
         // location 0 : vec2 pos
-        
+
         return {
             vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color))};
@@ -129,6 +129,7 @@ private:
     std::vector<vk::raii::Semaphore> renderFinishedSemaphore;
     // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
+    
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -147,7 +148,7 @@ private:
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
-        
+
         // need to do this after queueupresentKHR, or semaphores will not work correctly
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
@@ -164,6 +165,8 @@ private:
         createDescriptorSetLayout();
         createGraphicsPipeline();
         createCommandPool();
+
+        createTextureImage();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
@@ -221,6 +224,9 @@ private:
 
     void createGraphicsPipeline();
     void createCommandPool();
+
+    void createTextureImage();
+
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffers();

@@ -129,7 +129,7 @@ private:
     std::vector<vk::raii::Semaphore> renderFinishedSemaphore;
     // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
-    
+    //
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -226,7 +226,14 @@ private:
     void createCommandPool();
 
     void createTextureImage();
-
+    void createImage(uint32_t width,
+                     uint32_t height,
+                     vk::Format format,
+                     vk::ImageTiling tiling,
+                     vk::ImageUsageFlags usage,
+                     vk::MemoryPropertyFlags properties,
+                     vk::raii::Image &image,
+                     vk::raii::DeviceMemory &imageMemory);
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffers();
@@ -250,9 +257,12 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer &buffer, vk::raii::DeviceMemory &bufferMemory);
     void copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
+    void endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer);
+    vk::raii::CommandBuffer beginSingleTimeCommands();
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
+    void transitionImageLayout();
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
     static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
     {
@@ -310,5 +320,44 @@ private:
         file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
         file.close();
         return buffer;
+    }
+
+    vk::raii::CommandBuffer beginSingleTimeCommands()
+    {
+        // helper funtion for transition
+        vk::CommandBufferAllocateInfo allocInfo{
+            .commandPool = commandPool,
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1};
+        vk::raii::CommandBuffer commandBuffer = std::move(device.allocateCommandBuffers(allocInfo).front());
+
+        vk::CommandBufferBeginInfo beginInfo{
+            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+        commandBuffer.begin(beginInfo);
+
+        return commandBuffer;
+    }
+    void endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer)
+    {
+        commandBuffer.end();
+
+        vk::SubmitInfo submitInfo{
+            .commandBufferCount = 1,
+            .pCommandBuffers = &*commandBuffer};
+        queue.submit(submitInfo, nullptr);
+        queue.waitIdle();
+    }
+    void copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
+    {
+        /*
+        copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like drawing commands
+
+        */
+        // create a temporary command buffer for copy operation
+        vk::raii::CommandBuffer commandCopyBuffer = beginSingleTimeCommands();
+        // start recording command buffer
+        commandCopyBuffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+        commandCopyBuffer.copyBuffer(srcBuffer, dstBuffer, vk::BufferCopy{.size = size});
+        endSingleTimeCommands(commandCopyBuffer);
     }
 };

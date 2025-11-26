@@ -43,6 +43,26 @@ void HelloTriangleApplication::createTextureImage()
     vk::raii::Image textureImage = nullptr;
     vk::raii::DeviceMemory textureImageMemory = nullptr;
 
+    createImage(
+        static_cast<uint32_t>(texWidth),
+        static_cast<uint32_t>(texHeight),
+        vk::Format::eR8G8B8A8Srgb,
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        textureImage,
+        textureImageMemory);
+}
+void HelloTriangleApplication::createImage(
+    uint32_t width,
+    uint32_t height,
+    vk::Format format,
+    vk::ImageTiling tiling,
+    vk::ImageUsageFlags usage,
+    vk::MemoryPropertyFlags properties,
+    vk::raii::Image &image,
+    vk::raii::DeviceMemory &imageMemory)
+{
     vk::ImageCreateInfo imageInfo{
         .imageType = vk::ImageType::e2D,
         .format = format,
@@ -60,4 +80,14 @@ void HelloTriangleApplication::createTextureImage()
     vk::MemoryAllocateInfo allocInfo(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
     imageMemory = vk::raii::DeviceMemory(device, allocInfo);
     image.bindMemory(*imageMemory, 0);
+}
+
+void HelloTriangleApplication::transitionImageLayout{
+
+    // transition image to the right image layout first before copy to buffer
+    auto commandBuffer = beginSingleTimeCommands();
+
+
+
+    endSingleTimeCommands(commandBuffer);
 }

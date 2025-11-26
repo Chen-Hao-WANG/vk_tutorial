@@ -65,23 +65,7 @@ void HelloTriangleApplication::createBuffer(vk::DeviceSize size, vk::BufferUsage
     bufferMemory = vk::raii::DeviceMemory(device, allocInfo);
     buffer.bindMemory(*bufferMemory, 0);
 }
-void HelloTriangleApplication::copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
-{
-    /*
-    copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like drawing commands
 
-    */
-   // create a temporary command buffer for copy operation
-    vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
-    vk::raii::CommandBuffer commandCopyBuffer = std::move(device.allocateCommandBuffers(allocInfo).front());
-    // start recording command buffer
-    commandCopyBuffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-    commandCopyBuffer.copyBuffer(srcBuffer, dstBuffer, vk::BufferCopy{.size = size});
-    commandCopyBuffer.end();
-    // submit command buffer
-    queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
-    queue.waitIdle();
-}
 void HelloTriangleApplication::createIndexBuffer()
 {
     vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();

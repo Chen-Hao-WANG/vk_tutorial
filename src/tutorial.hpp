@@ -129,7 +129,9 @@ private:
     std::vector<vk::raii::Semaphore> renderFinishedSemaphore;
     // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
-    //
+    // texture image and its memory
+    vk::raii::Image textureImage = nullptr;
+    vk::raii::DeviceMemory textureImageMemory = nullptr;
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -256,13 +258,11 @@ private:
     void cleanupSwapChain();
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer &buffer, vk::raii::DeviceMemory &bufferMemory);
-    void copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
-    void endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer);
-    vk::raii::CommandBuffer beginSingleTimeCommands();
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
-    void transitionImageLayout();
+    void transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void copyBufferToImage(const vk::raii::Buffer &buffer, const vk::raii::Image &image, uint32_t width, uint32_t height);
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
     static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
     {

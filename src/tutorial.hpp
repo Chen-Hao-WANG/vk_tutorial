@@ -44,6 +44,8 @@ struct Vertex
 
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
+
     // tell vulkan how to pass this data to vertex shader once it's been uploaded into GPU memory
     // we need two structures need to tell
     // 1. VertexInputBindingDescription : input rate
@@ -53,22 +55,23 @@ struct Vertex
         return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
     }
 
-    static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
+    static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions()
     {
         // binding 0 : position
         // location 0 : vec2 pos
 
         return {
             vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, pos)),
-            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color))};
+            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
+            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord))};
     }
 };
 
 const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
 
 const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0};
@@ -132,6 +135,8 @@ private:
     // texture image and its memory
     vk::raii::Image textureImage = nullptr;
     vk::raii::DeviceMemory textureImageMemory = nullptr;
+    vk::raii::ImageView textureImageView = nullptr;
+    vk::raii::Sampler textureSampler = nullptr;
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -158,24 +163,25 @@ private:
     void initVulkan()
     {
         createInstance();
-        setupDebugMessenger();
-        createSurface();
-        pickPhysicalDevice();
-        createLogicalDevice();
-        createSwapChain();
-        createImageViews();
-        createDescriptorSetLayout();
-        createGraphicsPipeline();
-        createCommandPool();
-
-        createTextureImage();
-        createVertexBuffer();
-        createIndexBuffer();
-        createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
-        createCommandBuffers();
-        createSyncObjects();
+		setupDebugMessenger();
+		createSurface();
+		pickPhysicalDevice();
+		createLogicalDevice();
+		createSwapChain();
+		createImageViews();
+		createDescriptorSetLayout();
+		createGraphicsPipeline();
+		createCommandPool();
+		createTextureImage();
+		createTextureImageView();
+		createTextureSampler();
+		createVertexBuffer();
+		createIndexBuffer();
+		createUniformBuffers();
+		createDescriptorPool();
+		createDescriptorSets();
+		createCommandBuffers();
+		createSyncObjects();
     }
 
     void mainLoop()
@@ -262,7 +268,9 @@ private:
     void createDescriptorPool();
     void createDescriptorSets();
     void transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-    void copyBufferToImage(const vk::raii::Buffer &buffer, const vk::raii::Image &image, uint32_t width, uint32_t height);
+    void copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height);
+    void createTextureImageView();
+    void createTextureSampler();
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
     static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
     {
@@ -322,19 +330,18 @@ private:
         return buffer;
     }
 
-    vk::raii::CommandBuffer beginSingleTimeCommands()
+    std::unique_ptr<vk::raii::CommandBuffer> beginSingleTimeCommands()
     {
         // helper funtion for transition
         vk::CommandBufferAllocateInfo allocInfo{
             .commandPool = commandPool,
             .level = vk::CommandBufferLevel::ePrimary,
             .commandBufferCount = 1};
-        vk::raii::CommandBuffer commandBuffer = std::move(device.allocateCommandBuffers(allocInfo).front());
+        std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = std::make_unique<vk::raii::CommandBuffer>(std::move(device.allocateCommandBuffers(allocInfo).front()));
 
         vk::CommandBufferBeginInfo beginInfo{
             .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
-        commandBuffer.begin(beginInfo);
-
+        commandBuffer->begin(beginInfo);
         return commandBuffer;
     }
     void endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer)
@@ -353,11 +360,27 @@ private:
         copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like drawing commands
 
         */
-        // create a temporary command buffer for copy operation
-        vk::raii::CommandBuffer commandCopyBuffer = beginSingleTimeCommands();
+
+        vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
+
+        vk::raii::CommandBuffer commandCopyBuffer = std::move(device.allocateCommandBuffers(allocInfo).front());
         // start recording command buffer
         commandCopyBuffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        commandCopyBuffer.copyBuffer(srcBuffer, dstBuffer, vk::BufferCopy{.size = size});
-        endSingleTimeCommands(commandCopyBuffer);
+        commandCopyBuffer.copyBuffer(*srcBuffer, *dstBuffer, vk::BufferCopy{.size = size});
+        commandCopyBuffer.end();
+        // submit the command buffer and wait until it finishes
+        queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
+        queue.waitIdle();
+    }
+
+    vk::raii::ImageView createImageView(vk::raii::Image &image, vk::Format format)
+    {
+        vk::ImageViewCreateInfo viewInfo{
+            .image = *image,
+            .viewType = vk::ImageViewType::e2D,
+            .format = format,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
+
+        return vk::raii::ImageView(device, viewInfo);
     }
 };

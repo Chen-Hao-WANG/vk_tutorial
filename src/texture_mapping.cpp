@@ -16,7 +16,8 @@ void HelloTriangleApplication::createTextureImage()
     5. transition image layout for shader reading
     */
     int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc *pixels = stbi_load("../../../../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    
     if (!pixels)
     {
         throw std::runtime_error("failed to load texture image!");
@@ -84,7 +85,8 @@ void HelloTriangleApplication::createImage(
     image = vk::raii::Image(device, imageInfo);
 
     vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-    vk::MemoryAllocateInfo allocInfo(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    vk::MemoryAllocateInfo allocInfo{.allocationSize = memRequirements.size,
+                                     .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)};
     imageMemory = vk::raii::DeviceMemory(device, allocInfo);
     image.bindMemory(*imageMemory, 0);
 }
@@ -93,7 +95,7 @@ void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &imag
 {
 
     // transition image to the right image layout first before copy to buffer
-    auto commandBuffer = beginSingleTimeCommands();
+    std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = beginSingleTimeCommands();
 
     // using pipeline barrier to transition image layout(cool huh?)
     vk::ImageMemoryBarrier barrier{
@@ -112,8 +114,6 @@ void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &imag
     2. transfer dst -> shader read should wait for transfer write to finish
     (specifically the shader reads in the fragment shader, because that’s where we’re going to use the texture )
     */
-
-    
 
     // specify source access mask and destination access mask based on old and new layout
     vk::PipelineStageFlags sourceStage;
@@ -142,41 +142,56 @@ void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &imag
         throw std::invalid_argument("unsupported layout transition!");
     }
 
-    commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, {}, nullptr, barrier);
+    commandBuffer->pipelineBarrier(sourceStage, destinationStage, {}, {}, nullptr, barrier);
 
-    
-
-    endSingleTimeCommands(commandBuffer);
+    endSingleTimeCommands(*commandBuffer);
 }
-void HelloTriangleApplication::copyBufferToImage(
-    vk::raii::Buffer &buffer,
-    vk::raii::Image &image,
-    uint32_t width,
-    uint32_t height)
-{
-    /*
-    before we can use the image as a texture in shader, we need to copy the pixel data from the staging buffer to the image object
 
-    */
-    auto commandBuffer = beginSingleTimeCommands();
+void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height)
+{
+
+    /*before we can use the image as a texture in shader, we need to copy the pixel data from the staging buffer to the image object*/
+    std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = beginSingleTimeCommands();
 
     vk::BufferImageCopy region{
         .bufferOffset = 0,
         .bufferRowLength = 0,
         .bufferImageHeight = 0,
-        .imageSubresource = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .mipLevel = 0,
-            .baseArrayLayer = 0,
-            .layerCount = 1},
+        .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
         .imageOffset = {0, 0, 0},
         .imageExtent = {width, height, 1}};
 
-    commandBuffer.copyBufferToImage(
+    commandBuffer->copyBufferToImage(
         buffer,
         image,
         vk::ImageLayout::eTransferDstOptimal,
         region);
 
-    endSingleTimeCommands(commandBuffer);
+    endSingleTimeCommands(*commandBuffer);
+}
+void HelloTriangleApplication::createTextureImageView()
+{
+    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
+}
+void HelloTriangleApplication::createTextureSampler()
+{
+    /*
+    setup sampler to read from the texture image in the shader
+    1. get device properties to check max sampler anisotropy
+    2. create sampler info
+
+    */
+
+    vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
+    vk::SamplerCreateInfo samplerInfo{.magFilter = vk::Filter::eLinear,
+                                      .minFilter = vk::Filter::eLinear,
+                                      .mipmapMode = vk::SamplerMipmapMode::eLinear,
+                                      .addressModeU = vk::SamplerAddressMode::eRepeat,
+                                      .addressModeV = vk::SamplerAddressMode::eRepeat,
+                                      .addressModeW = vk::SamplerAddressMode::eRepeat,
+                                      .anisotropyEnable = vk::True,
+                                      .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+                                      .compareEnable = vk::False,
+                                      .compareOp = vk::CompareOp::eAlways};
+    textureSampler = vk::raii::Sampler(device, samplerInfo);
 }

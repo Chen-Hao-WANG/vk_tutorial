@@ -4,7 +4,6 @@ void HelloTriangleApplication::createLogicalDevice()
 {
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
 
-    
     for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
     {
         if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&
@@ -21,16 +20,16 @@ void HelloTriangleApplication::createLogicalDevice()
     }
 
     // query for Vulkan 1.3 features
-		vk::StructureChain<vk::PhysicalDeviceFeatures2,
-		                   vk::PhysicalDeviceVulkan11Features,
-		                   vk::PhysicalDeviceVulkan13Features,
-		                   vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
-		    featureChain = {
-		        {},                                                          // vk::PhysicalDeviceFeatures2
-		        {.shaderDrawParameters = true},                              // vk::PhysicalDeviceVulkan11Features
-		        {.synchronization2 = true, .dynamicRendering = true},        // vk::PhysicalDeviceVulkan13Features
-		        {.extendedDynamicState = true}                               // vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
-		    };
+    vk::StructureChain<vk::PhysicalDeviceFeatures2,
+                       vk::PhysicalDeviceVulkan11Features,
+                       vk::PhysicalDeviceVulkan13Features,
+                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+        featureChain = {
+            {.features = {.samplerAnisotropy = true}},            // vk::PhysicalDeviceFeatures2
+            {.shaderDrawParameters = true},                       // vk::PhysicalDeviceVulkan11Features
+            {.synchronization2 = true, .dynamicRendering = true}, // vk::PhysicalDeviceVulkan13Features
+            {.extendedDynamicState = true}                        // vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
+        };
 
     // create a Device
     float queuePriority = 0.0f;

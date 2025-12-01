@@ -46,20 +46,22 @@ struct Vertex
     glm::vec3 color;
     glm::vec2 texCoord;
 
-    // tell vulkan how to pass this data to vertex shader once it's been uploaded into GPU memory
-    // we need two structures need to tell
-    // 1. VertexInputBindingDescription : input rate
-    // 2. VertexInputAttributeDescription :
+    /**
+     * @brief Get the Binding Description object
+     * 
+     * @return vk::VertexInputBindingDescription 
+     */
     static vk::VertexInputBindingDescription getBindingDescription()
     {
         return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
     }
-
+    /**
+     * @brief Get the Attribute Descriptions object
+     * 
+     * @return std::array<vk::VertexInputAttributeDescription, 3> 
+     */
     static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions()
     {
-        // binding 0 : position
-        // location 0 : vec2 pos
-
         return {
             vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),

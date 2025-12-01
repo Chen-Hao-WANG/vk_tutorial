@@ -113,6 +113,18 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     // end command buffer recording
     commandBuffers[currentFrame].end();
 }
+/**
+ * @brief Transition the image layout to a new layout
+ * 
+ * @param image 
+ * @param oldLayout 
+ * @param newLayout 
+ * @param srcAccessMask 
+ * @param dstAccessMask 
+ * @param srcStageMask 
+ * @param dstStageMask 
+ * @param image_aspectMask 
+ */
 void HelloTriangleApplication::transition_image_layout(
     vk::Image image,
     vk::ImageLayout oldLayout,

@@ -1,5 +1,9 @@
 #include "tutorial.hpp"
-
+/*
+createDescriptorSetLayout():ubo for MVP transformation at vertex shader stage, CombinedImageSampler for texture sampler at frag shader stage
+createDescriptorPool(): two pool size for ubo and texture sampler
+createDescriptorSets():bind two different kind of discriptor info to desciptor set
+*/
 void HelloTriangleApplication::createDescriptorSetLayout()
 {
     /*

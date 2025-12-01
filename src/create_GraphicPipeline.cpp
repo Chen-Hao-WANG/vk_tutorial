@@ -29,6 +29,13 @@ void HelloTriangleApplication::createGraphicsPipeline()
         .lineWidth = 1.0f};
     // Multisampling
     vk::PipelineMultisampleStateCreateInfo multisampling{.rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False};
+    // Depth and stencil testing
+    vk::PipelineDepthStencilStateCreateInfo depthStencil{
+        .depthTestEnable = vk::True,
+        .depthWriteEnable = vk::True,
+        .depthCompareOp = vk::CompareOp::eLess,
+        .depthBoundsTestEnable = vk::False,
+        .stencilTestEnable = vk::False};
     // Color blending
     vk::PipelineColorBlendAttachmentState colorBlendAttachment{.blendEnable = vk::False,
                                                                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
@@ -43,8 +50,10 @@ void HelloTriangleApplication::createGraphicsPipeline()
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0};
     // pipeline layout
     pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
-    // Pipeline Rendering Create Info
-    vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{.colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChainSurfaceFormat.format};
+    // add depth format
+    vk::Format depthFormat = findDepthFormat();
+    // Pipeline Rendering Create Info 
+    vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{.colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChainSurfaceFormat.format, .depthAttachmentFormat = depthFormat};
     vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo,
                                                 .stageCount = 2,
                                                 .pStages = shaderStages,
@@ -53,6 +62,7 @@ void HelloTriangleApplication::createGraphicsPipeline()
                                                 .pViewportState = &viewportState,
                                                 .pRasterizationState = &rasterizer,
                                                 .pMultisampleState = &multisampling,
+                                                .pDepthStencilState = &depthStencil,
                                                 .pColorBlendState = &colorBlending,
                                                 .pDynamicState = &dynamicState,
                                                 .layout = pipelineLayout,

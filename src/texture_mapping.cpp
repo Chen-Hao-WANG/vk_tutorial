@@ -57,9 +57,9 @@ void HelloTriangleApplication::createTextureImage()
 
     //  The last thing we did there was creating the texture image object, but it is still empty!
     // Now we need to copy the pixel data from the staging buffer to the image object.
-    transitionImageLayout(textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    texture_transitionImageLayout(textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    texture_transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 void HelloTriangleApplication::createImage(
     uint32_t width,
@@ -91,7 +91,7 @@ void HelloTriangleApplication::createImage(
     image.bindMemory(*imageMemory, 0);
 }
 
-void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 {
 
     // transition image to the right image layout first before copy to buffer
@@ -171,7 +171,7 @@ void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer,
 }
 void HelloTriangleApplication::createTextureImageView()
 {
-    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
+    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
 }
 void HelloTriangleApplication::createTextureSampler()
 {

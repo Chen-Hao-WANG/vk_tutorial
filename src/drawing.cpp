@@ -34,17 +34,29 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     // in Vulkan, image can be in a layout optimal for specific operations
     // we need to transition the image layout to the appropriate layout before rendering
     transition_image_layout(
-        imageIndex,
+        swapChainImages[imageIndex],
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
         {},                                                 // srcAccessMask (no need to wait for previous operations)
         vk::AccessFlagBits2::eColorAttachmentWrite,         // dstAccessMask
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput  // dstStage
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,  // dstStage
+        vk::ImageAspectFlagBits::eColor
     );
-    // setup color attachment
+    transition_image_layout(
+        *depthImage,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eDepthAttachmentOptimal,
+        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+        vk::ImageAspectFlagBits::eDepth);
+    //
     vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-    vk::RenderingAttachmentInfo attachmentInfo = {
+    vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
+    // setup color attachment info
+    vk::RenderingAttachmentInfo colorAttachmentInfo = {
         // which image view to render to
         .imageView = swapChainImageViews[imageIndex],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -53,12 +65,20 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         // what to do after rendering
         .storeOp = vk::AttachmentStoreOp::eStore,
         .clearValue = clearColor};
+    // setup dapth attachment info
+    vk::RenderingAttachmentInfo depthAttachmentInfo = {
+        .imageView = depthImageView,
+        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = clearDepth};
     // set up rendering info
     vk::RenderingInfo renderingInfo = {
         .renderArea = {.offset = {0, 0}, .extent = swapChainExtent},
         .layerCount = 1,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &attachmentInfo};
+        .pColorAttachments = &colorAttachmentInfo,
+        .pDepthAttachment = &depthAttachmentInfo};
 
     /* ---begin rendering--- */
     commandBuffers[currentFrame].beginRendering(renderingInfo);
@@ -81,25 +101,27 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
 
     // After rendering, transition the image layout for presentation
     transition_image_layout(
-        imageIndex,
+        swapChainImages[imageIndex],
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR,
         vk::AccessFlagBits2::eColorAttachmentWrite,         // srcAccessMask
         {},                                                 // dstAccessMask
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
-        vk::PipelineStageFlagBits2::eBottomOfPipe           // dstStage
+        vk::PipelineStageFlagBits2::eBottomOfPipe,          // dstStage
+        vk::ImageAspectFlagBits::eColor
     );
     // end command buffer recording
     commandBuffers[currentFrame].end();
 }
 void HelloTriangleApplication::transition_image_layout(
-    uint32_t imageIndex,
+    vk::Image image,
     vk::ImageLayout oldLayout,
     vk::ImageLayout newLayout,
     vk::AccessFlags2 srcAccessMask,
     vk::AccessFlags2 dstAccessMask,
     vk::PipelineStageFlags2 srcStageMask,
-    vk::PipelineStageFlags2 dstStageMask)
+    vk::PipelineStageFlags2 dstStageMask,
+    vk::ImageAspectFlags image_aspectMask)
 {
     vk::ImageMemoryBarrier2 barrier = {
         .srcStageMask = srcStageMask,
@@ -110,9 +132,9 @@ void HelloTriangleApplication::transition_image_layout(
         .newLayout = newLayout,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = swapChainImages[imageIndex],
+        .image = image,
         .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .aspectMask = image_aspectMask,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,

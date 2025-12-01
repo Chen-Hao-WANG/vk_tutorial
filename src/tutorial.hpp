@@ -143,6 +143,11 @@ private:
     vk::raii::DeviceMemory textureImageMemory = nullptr;
     vk::raii::ImageView textureImageView = nullptr;
     vk::raii::Sampler textureSampler = nullptr;
+    // depth buffering
+    vk::raii::Image depthImage = nullptr;
+    vk::raii::DeviceMemory depthImageMemory = nullptr;
+    vk::raii::ImageView depthImageView = nullptr;
+
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -178,9 +183,13 @@ private:
         createDescriptorSetLayout();
         createGraphicsPipeline();
         createCommandPool();
+        //
+        createDepthResources();
+        //
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+        //
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
@@ -256,13 +265,14 @@ private:
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);
     void transition_image_layout(
-        uint32_t imageIndex,
+        vk::Image image,
         vk::ImageLayout oldLayout,
         vk::ImageLayout newLayout,
         vk::AccessFlags2 srcAccessMask,
         vk::AccessFlags2 dstAccessMask,
         vk::PipelineStageFlags2 srcStageMask,
-        vk::PipelineStageFlags2 dstStageMask);
+        vk::PipelineStageFlags2 dstStageMask,
+        vk::ImageAspectFlags image_aspectMask);
     // Waiting for the previous frame
     void drawFrame();
     // recreate swap chain
@@ -273,10 +283,12 @@ private:
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
-    void transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void texture_transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
     void copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height);
     void createTextureImageView();
     void createTextureSampler();
+    void createDepthResources();
+    vk::Format findDepthFormat();
     [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
     static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
     {
@@ -287,7 +299,24 @@ private:
         }
         return minImageCount;
     }
+    // find supported format for depth buffering
+    vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+    {
+        for (const auto format : candidates)
+        {
+            vk::FormatProperties props = physicalDevice.getFormatProperties(format);
 
+            if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
+            {
+                return format;
+            }
+            else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
+            {
+                return format;
+            }
+        }
+        throw std::runtime_error("failed to find supported format!");
+    }
     static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
     {
         assert(!availableFormats.empty());
@@ -379,14 +408,14 @@ private:
         queue.waitIdle();
     }
 
-    vk::raii::ImageView createImageView(vk::raii::Image &image, vk::Format format)
+    vk::raii::ImageView createImageView(vk::raii::Image &image, vk::Format format, vk::ImageAspectFlags aspectFlags)
     {
         vk::ImageViewCreateInfo viewInfo{
-            .image = *image,
+            .image = image,
             .viewType = vk::ImageViewType::e2D,
             .format = format,
-            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
-
+            .subresourceRange = {aspectFlags, 0, 1, 0, 1}};
         return vk::raii::ImageView(device, viewInfo);
     }
+    
 };

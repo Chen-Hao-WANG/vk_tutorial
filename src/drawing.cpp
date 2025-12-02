@@ -1,11 +1,26 @@
 #include "tutorial.hpp"
 
+/**
+ * @brief Initializes the Command Pool object.
+ *
+ * This pool manages the memory for command buffers. It is configured to target
+ * the graphics queue family and allows for individual command buffer resetting.
+ *
+ * @note This must be called before creating any command buffers.
+ * @throws vk::SystemError if the command pool creation fails.
+ */
 void HelloTriangleApplication::createCommandPool()
 {
-    // we have to create command pool before creating command buffers
-    // command pool manages the memory for command buffers
-    vk::CommandPoolCreateInfo poolInfo{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                       .queueFamilyIndex = queueIndex};
+    vk::CommandPoolCreateInfo poolInfo{
+        // Internal Implementation Note:
+        // We use 'eResetCommandBuffer' to allow command buffers to be re-recorded individually.
+        // Without this flag, we would have to reset the entire pool to re-record a single buffer.
+        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+
+        // Specify that the command buffers allocated from this pool
+        // will be submitted to the graphics queue.
+        .queueFamilyIndex = queueIndex};
+
     commandPool = vk::raii::CommandPool(device, poolInfo);
 }
 void HelloTriangleApplication::createCommandBuffers()
@@ -40,9 +55,8 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         {},                                                 // srcAccessMask (no need to wait for previous operations)
         vk::AccessFlagBits2::eColorAttachmentWrite,         // dstAccessMask
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput,  // dstStage
-        vk::ImageAspectFlagBits::eColor
-    );
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput, // dstStage
+        vk::ImageAspectFlagBits::eColor);
     transition_image_layout(
         *depthImage,
         vk::ImageLayout::eUndefined,
@@ -108,22 +122,21 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         {},                                                 // dstAccessMask
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
         vk::PipelineStageFlagBits2::eBottomOfPipe,          // dstStage
-        vk::ImageAspectFlagBits::eColor
-    );
+        vk::ImageAspectFlagBits::eColor);
     // end command buffer recording
     commandBuffers[currentFrame].end();
 }
 /**
  * @brief Transition the image layout to a new layout
- * 
- * @param image 
- * @param oldLayout 
- * @param newLayout 
- * @param srcAccessMask 
- * @param dstAccessMask 
- * @param srcStageMask 
- * @param dstStageMask 
- * @param image_aspectMask 
+ *
+ * @param image
+ * @param oldLayout
+ * @param newLayout
+ * @param srcAccessMask
+ * @param dstAccessMask
+ * @param srcStageMask
+ * @param dstStageMask
+ * @param image_aspectMask
  */
 void HelloTriangleApplication::transition_image_layout(
     vk::Image image,

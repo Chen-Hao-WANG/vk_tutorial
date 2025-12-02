@@ -148,6 +148,7 @@ private:
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
     uint32_t semaphoreIndex = 0;
+
     std::vector<const char *> requiredDeviceExtension = {
         vk::KHRSwapchainExtensionName,
         vk::KHRSpirv14ExtensionName,

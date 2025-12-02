@@ -1,5 +1,8 @@
 #include "tutorial.hpp"
-
+/**
+ * @brief Load model from file using tinyobjloader
+ * 
+ */
 void HelloTriangleApplication::loadModel()
 {
     // tinyobj attribute
@@ -31,7 +34,7 @@ void HelloTriangleApplication::loadModel()
                 attrib.vertices[3 * index.vertex_index + 2]};
 
             vertex.texCoord = {
-                
+
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
 

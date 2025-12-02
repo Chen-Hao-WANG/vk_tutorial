@@ -1,11 +1,10 @@
 #include "tutorial.hpp"
-/*
-create texture image we need:
+/** @brief create texture image we need:
 1. create a image object which backed by device memory
 2. fill the object with pixel data
 3. create a sampler to sample the image in the shader
 4. add a combined image sampler descriptor to sample from the texture
-*/
+ */
 void HelloTriangleApplication::createTextureImage()
 {
     /*
@@ -16,8 +15,8 @@ void HelloTriangleApplication::createTextureImage()
     5. transition image layout for shader reading
     */
     int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load("../../../../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    
+    stbi_uc *pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
     if (!pixels)
     {
         throw std::runtime_error("failed to load texture image!");
@@ -61,6 +60,19 @@ void HelloTriangleApplication::createTextureImage()
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
     texture_transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
+
+/**
+ * @brief create an image object and allocate memory for it
+ * 
+ * @param width 
+ * @param height 
+ * @param format 
+ * @param tiling 
+ * @param usage 
+ * @param properties 
+ * @param image 
+ * @param imageMemory 
+ */
 void HelloTriangleApplication::createImage(
     uint32_t width,
     uint32_t height,
@@ -90,7 +102,13 @@ void HelloTriangleApplication::createImage(
     imageMemory = vk::raii::DeviceMemory(device, allocInfo);
     image.bindMemory(*imageMemory, 0);
 }
-
+/**
+ * @brief Transition the image layout to a new layout
+ * 
+ * @param image 
+ * @param oldLayout 
+ * @param newLayout 
+ */
 void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 {
 
@@ -147,6 +165,14 @@ void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Ima
     endSingleTimeCommands(*commandBuffer);
 }
 
+/**
+ * @brief Copy data from a buffer to an image
+ * 
+ * @param buffer 
+ * @param image 
+ * @param width 
+ * @param height 
+ */
 void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height)
 {
 
@@ -169,10 +195,20 @@ void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer,
 
     endSingleTimeCommands(*commandBuffer);
 }
+
+/**
+ * @brief create texture image view
+ * call createImageView helper function
+ */
 void HelloTriangleApplication::createTextureImageView()
 {
-    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb,vk::ImageAspectFlagBits::eColor);
+    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
+
+/**
+ * @brief create texture sampler
+ *  setup sampler to read from the texture image in the shader
+ */
 void HelloTriangleApplication::createTextureSampler()
 {
     /*

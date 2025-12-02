@@ -79,6 +79,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         // what to do after rendering
         .storeOp = vk::AttachmentStoreOp::eStore,
         .clearValue = clearColor};
+        
     // setup dapth attachment info
     vk::RenderingAttachmentInfo depthAttachmentInfo = {
         .imageView = depthImageView,
@@ -86,6 +87,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         .loadOp = vk::AttachmentLoadOp::eClear,
         .storeOp = vk::AttachmentStoreOp::eDontCare,
         .clearValue = clearDepth};
+
     // set up rendering info
     vk::RenderingInfo renderingInfo = {
         .renderArea = {.offset = {0, 0}, .extent = swapChainExtent},
@@ -104,7 +106,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     commandBuffers[currentFrame].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChainExtent));
     // bind vertex and index buffer
     commandBuffers[currentFrame].bindVertexBuffers(0, *vertexBuffer, {0});
-    commandBuffers[currentFrame].bindIndexBuffer(*indexBuffer, 0, vk::IndexType::eUint16);
+    commandBuffers[currentFrame].bindIndexBuffer(*indexBuffer, 0, vk::IndexType::eUint32);
 
     // bind the right descriptor set for each frame before draw indexed
     commandBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);

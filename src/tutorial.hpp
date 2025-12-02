@@ -22,13 +22,19 @@ import vulkan_hpp;
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
 
+#include <tiny_obj_loader.h>
 #include <stb_image.h>
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
+const std::string MODEL_PATH = "../../../../model/viking_room.obj";
+const std::string TEXTURE_PATH = "../../../../textures/viking_room.png";
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<char const *> validationLayers = {
@@ -48,8 +54,8 @@ struct Vertex
 
     /**
      * @brief Get the Binding Description object
-     * 
-     * @return vk::VertexInputBindingDescription 
+     *
+     * @return vk::VertexInputBindingDescription
      */
     static vk::VertexInputBindingDescription getBindingDescription()
     {
@@ -57,8 +63,8 @@ struct Vertex
     }
     /**
      * @brief Get the Attribute Descriptions object
-     * 
-     * @return std::array<vk::VertexInputAttributeDescription, 3> 
+     *
+     * @return std::array<vk::VertexInputAttributeDescription, 3>
      */
     static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions()
     {
@@ -69,20 +75,6 @@ struct Vertex
     }
 };
 
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
-
-const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4};
 struct UniformBufferObject
 {
     glm::mat4 model;
@@ -149,7 +141,9 @@ private:
     vk::raii::Image depthImage = nullptr;
     vk::raii::DeviceMemory depthImageMemory = nullptr;
     vk::raii::ImageView depthImageView = nullptr;
-
+    // class member for model
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -191,6 +185,8 @@ private:
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+        //
+        loadModel();
         //
         createVertexBuffer();
         createIndexBuffer();
@@ -259,6 +255,7 @@ private:
                      vk::MemoryPropertyFlags properties,
                      vk::raii::Image &image,
                      vk::raii::DeviceMemory &imageMemory);
+    void loadModel();
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffers();
@@ -301,7 +298,11 @@ private:
         }
         return minImageCount;
     }
-    // find supported format for depth buffering
+    /**
+     * @brief find a supported format from candidates
+     *
+     * @return vk::Format
+     */
     vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
     {
         for (const auto format : candidates)
@@ -419,5 +420,4 @@ private:
             .subresourceRange = {aspectFlags, 0, 1, 0, 1}};
         return vk::raii::ImageView(device, viewInfo);
     }
-    
 };

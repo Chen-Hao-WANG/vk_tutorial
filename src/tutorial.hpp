@@ -45,12 +45,18 @@ constexpr bool enableValidationLayers = false;
 #else
 constexpr bool enableValidationLayers = true;
 #endif
+
+/**
+ * @brief Vertex data structure
+ *
+ */
 struct Vertex
 {
 
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
+    glm::vec3 normal;
 
     /**
      * @brief Get the Binding Description object
@@ -64,14 +70,15 @@ struct Vertex
     /**
      * @brief Get the Attribute Descriptions object
      *
-     * @return std::array<vk::VertexInputAttributeDescription, 3>
+     * @return std::array<vk::VertexInputAttributeDescription, 4>
      */
-    static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions()
+    static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions()
     {
         return {
             vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
-            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord))};
+            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord)),
+            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal))};
     }
 };
 
@@ -141,9 +148,23 @@ private:
     vk::raii::Image depthImage = nullptr;
     vk::raii::DeviceMemory depthImageMemory = nullptr;
     vk::raii::ImageView depthImageView = nullptr;
+    // G-Buffer Normal
+    vk::raii::Image gBufferNormalImage = nullptr;
+    vk::raii::DeviceMemory gBufferNormalImageMemory = nullptr;
+    vk::raii::ImageView gBufferNormalImageView = nullptr;
+    // G-Buffer Position
+    vk::raii::Image gBufferPositionImage = nullptr;
+    vk::raii::DeviceMemory gBufferPositionImageMemory = nullptr;
+    vk::raii::ImageView gBufferPositionImageView = nullptr;
+    // G-Buffer Material / Flux
+    vk::raii::Image gBufferMaterialImage = nullptr;
+    vk::raii::DeviceMemory gBufferMaterialImageMemory = nullptr;
+    vk::raii::ImageView gBufferMaterialImageView = nullptr;
+
     // class member for model
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+
     //
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
@@ -182,6 +203,7 @@ private:
         createCommandPool();
         //
         createDepthResources();
+        //createGbufferResources();
         //
         createTextureImage();
         createTextureImageView();
@@ -248,14 +270,7 @@ private:
     void createCommandPool();
 
     void createTextureImage();
-    void createImage(uint32_t width,
-                     uint32_t height,
-                     vk::Format format,
-                     vk::ImageTiling tiling,
-                     vk::ImageUsageFlags usage,
-                     vk::MemoryPropertyFlags properties,
-                     vk::raii::Image &image,
-                     vk::raii::DeviceMemory &imageMemory);
+    
     void loadModel();
     void createVertexBuffer();
     void createIndexBuffer();
@@ -411,7 +426,55 @@ private:
         queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
         queue.waitIdle();
     }
+    /**
+     * @brief create an image object and allocate memory for it
+     *
+     * @param width
+     * @param height
+     * @param format
+     * @param tiling
+     * @param usage
+     * @param properties
+     * @param image
+     * @param imageMemory
+     */
+    void createImage(
+        uint32_t width,
+        uint32_t height,
+        vk::Format format,
+        vk::ImageTiling tiling,
+        vk::ImageUsageFlags usage,
+        vk::MemoryPropertyFlags properties,
+        vk::raii::Image &image,
+        vk::raii::DeviceMemory &imageMemory)
+    {
+        vk::ImageCreateInfo imageInfo{
+            .imageType = vk::ImageType::e2D,
+            .format = format,
+            .extent = {width, height, 1},
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = vk::SampleCountFlagBits::e1,
+            .tiling = tiling,
+            .usage = usage,
+            .sharingMode = vk::SharingMode::eExclusive};
 
+        image = vk::raii::Image(device, imageInfo);
+
+        vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+        vk::MemoryAllocateInfo allocInfo{.allocationSize = memRequirements.size,
+                                         .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)};
+        imageMemory = vk::raii::DeviceMemory(device, allocInfo);
+        image.bindMemory(*imageMemory, 0);
+    }
+    /**
+     * @brief create an image view for the given image
+     *
+     * @param image
+     * @param format
+     * @param aspectFlags
+     * @return vk::raii::ImageView
+     */
     vk::raii::ImageView createImageView(vk::raii::Image &image, vk::Format format, vk::ImageAspectFlags aspectFlags)
     {
         vk::ImageViewCreateInfo viewInfo{
@@ -421,4 +484,5 @@ private:
             .subresourceRange = {aspectFlags, 0, 1, 0, 1}};
         return vk::raii::ImageView(device, viewInfo);
     }
+    void createGbufferResources();
 };

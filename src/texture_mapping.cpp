@@ -61,47 +61,7 @@ void HelloTriangleApplication::createTextureImage()
     texture_transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
-/**
- * @brief create an image object and allocate memory for it
- * 
- * @param width 
- * @param height 
- * @param format 
- * @param tiling 
- * @param usage 
- * @param properties 
- * @param image 
- * @param imageMemory 
- */
-void HelloTriangleApplication::createImage(
-    uint32_t width,
-    uint32_t height,
-    vk::Format format,
-    vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage,
-    vk::MemoryPropertyFlags properties,
-    vk::raii::Image &image,
-    vk::raii::DeviceMemory &imageMemory)
-{
-    vk::ImageCreateInfo imageInfo{
-        .imageType = vk::ImageType::e2D,
-        .format = format,
-        .extent = {width, height, 1},
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = vk::SampleCountFlagBits::e1,
-        .tiling = tiling,
-        .usage = usage,
-        .sharingMode = vk::SharingMode::eExclusive};
 
-    image = vk::raii::Image(device, imageInfo);
-
-    vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-    vk::MemoryAllocateInfo allocInfo{.allocationSize = memRequirements.size,
-                                     .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)};
-    imageMemory = vk::raii::DeviceMemory(device, allocInfo);
-    image.bindMemory(*imageMemory, 0);
-}
 /**
  * @brief Transition the image layout to a new layout
  * 

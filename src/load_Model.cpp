@@ -1,7 +1,7 @@
 #include "tutorial.hpp"
 /**
  * @brief Load model from file using tinyobjloader
- * 
+ *
  */
 void HelloTriangleApplication::loadModel()
 {
@@ -27,17 +27,20 @@ void HelloTriangleApplication::loadModel()
         for (const auto &index : shape.mesh.indices)
         {
             Vertex vertex{};
-
+            // load vertex position
             vertex.pos = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]};
-
+            // load vertex normal
+            vertex.normal = {
+                attrib.normals[3 * index.normal_index + 0],
+                attrib.normals[3 * index.normal_index + 1],
+                attrib.normals[3 * index.normal_index + 2]};
+            // load vertex texture coordinate
             vertex.texCoord = {
-
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
-
 
             vertex.color = {1.0f, 1.0f, 1.0f}; // set default color to white
             vertices.push_back(vertex);

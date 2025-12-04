@@ -40,7 +40,7 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<char const *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 
-#ifdef NDEBUG
+#ifdef ENABLE_VALIDATION_LAYERS
 constexpr bool enableValidationLayers = false;
 #else
 constexpr bool enableValidationLayers = true;
@@ -193,6 +193,7 @@ private:
     {
         createInstance();
         setupDebugMessenger();
+        testValidationLayers();
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -203,7 +204,7 @@ private:
         createCommandPool();
         //
         createDepthResources();
-        //createGbufferResources();
+        // createGbufferResources();
         //
         createTextureImage();
         createTextureImageView();
@@ -270,7 +271,7 @@ private:
     void createCommandPool();
 
     void createTextureImage();
-    
+
     void loadModel();
     void createVertexBuffer();
     void createIndexBuffer();
@@ -485,4 +486,24 @@ private:
         return vk::raii::ImageView(device, viewInfo);
     }
     void createGbufferResources();
+    void testValidationLayers()
+    {
+        std::cout << "=== VALIDATION LAYER TEST ===" << std::endl;
+        std::cout << "enableValidationLayers = " << (enableValidationLayers ? "TRUE" : "FALSE") << std::endl;
+        
+        if (enableValidationLayers)
+        {
+            std::cout << "Debug messenger created: " << (*debugMessenger ? "YES" : "NO") << std::endl;
+            std::cout << "Requested layers:" << std::endl;
+            for (const auto& layer : validationLayers)
+            {
+                std::cout << "  - " << layer << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "Validation layers are DISABLED" << std::endl;
+        }
+        std::cout << "=============================" << std::endl;
+    }
 };

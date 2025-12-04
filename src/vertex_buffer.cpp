@@ -29,6 +29,15 @@ uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, vk::Memor
     }
     throw std::runtime_error("failed to find suitable memory type!");
 }
+/**
+ * @brief create a buffer object and allocate memory for it
+ *
+ * @param size
+ * @param usage
+ * @param properties
+ * @param buffer
+ * @param bufferMemory
+ */
 void HelloTriangleApplication::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer &buffer, vk::raii::DeviceMemory &bufferMemory)
 {
     /*
@@ -42,7 +51,9 @@ void HelloTriangleApplication::createBuffer(vk::DeviceSize size, vk::BufferUsage
     bufferMemory = vk::raii::DeviceMemory(device, allocInfo);
     buffer.bindMemory(bufferMemory, 0);
 }
-
+/**
+ * @brief create index buffer
+ */
 void HelloTriangleApplication::createIndexBuffer()
 {
     vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();

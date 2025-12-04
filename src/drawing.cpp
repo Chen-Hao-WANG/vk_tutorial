@@ -79,7 +79,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         // what to do after rendering
         .storeOp = vk::AttachmentStoreOp::eStore,
         .clearValue = clearColor};
-        
+
     // setup dapth attachment info
     vk::RenderingAttachmentInfo depthAttachmentInfo = {
         .imageView = depthImageView,
@@ -240,14 +240,7 @@ void HelloTriangleApplication::drawFrame()
 
     // submit command buffer
     vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    const vk::SubmitInfo submitInfo{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &*presentCompleteSemaphore[semaphoreIndex],
-        .pWaitDstStageMask = &waitDestinationStageMask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &*commandBuffers[currentFrame],
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &*renderFinishedSemaphore[imageIndex]};
+    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1, .pWaitSemaphores = &*presentCompleteSemaphore[semaphoreIndex], .pWaitDstStageMask = &waitDestinationStageMask, .commandBufferCount = 1, .pCommandBuffers = &*commandBuffers[currentFrame], .signalSemaphoreCount = 1, .pSignalSemaphores = &*renderFinishedSemaphore[imageIndex]};
     queue.submit(submitInfo, *inFlightFences[currentFrame]);
 
     //  submitting the result back to the swap chain to have it eventually show up on the screen

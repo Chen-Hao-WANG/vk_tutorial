@@ -151,7 +151,7 @@ void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer,
         buffer,
         image,
         vk::ImageLayout::eTransferDstOptimal,
-        region);
+        {region});
 
     endSingleTimeCommands(*commandBuffer);
 }

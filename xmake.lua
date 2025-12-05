@@ -1,3 +1,5 @@
+-- xmake f -m release; xmake; xmake run
+-- xmake f -m debug; xmake; xmake run
 set_project("MyVulkanProject")
 set_languages("cxx20")
 add_rules("mode.debug", "mode.release")
@@ -15,11 +17,6 @@ add_requires("ktx")
 add_defines("VULKAN_HPP_NO_STRUCT_CONSTRUCTORS")
 
 -- Note: we rely on the Vulkan SDK via add_requires("vulkansdk") and link it per-target below.
-
--- Enable Vulkan validation layers automatically in Debug builds
-if is_mode("debug") then
-    add_defines("ENABLE_VALIDATION_LAYERS")
-end
 
 rule("slangc")
     -- run shader compilation as a pre-build hook instead of overriding C/C++ build
@@ -65,5 +62,9 @@ target("VulkanTutorial")
     add_packages("glfw", "glm", "tinyobjloader", "stb", "tinygltf", "ktx", "vulkansdk")
     -- attach the rule so slang files compile before building the C++ target
     add_rules("slangc")
+    -- Enable Vulkan validation layers automatically in Debug builds
+    if is_mode("debug") then
+        add_defines("ENABLE_VALIDATION_LAYERS")
+    end
     -- run from target directory so runtime finds compiled shaders under ./shaders
     set_rundir("$(builddir)/$(plat)/$(arch)/$(mode)")

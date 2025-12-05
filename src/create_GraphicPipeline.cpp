@@ -1,7 +1,7 @@
 #include "tutorial.hpp"
 /**
  * @brief Create the Graphics Pipeline object
- * 
+ *
  */
 void HelloTriangleApplication::createGraphicsPipeline()
 {
@@ -10,6 +10,11 @@ void HelloTriangleApplication::createGraphicsPipeline()
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule, .pName = "vertMain"};
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaderModule, .pName = "fragMain"};
     vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    vk::Format colorFormats[] = {
+        swapChainSurfaceFormat.format,   // 0: Swapchain Color
+        vk::Format::eR32G32B32A32Sfloat, // 1: Position
+        vk::Format::eR16G16B16A16Sfloat  // 2: Normal
+    };
 
     // get two vertex input descriptions from Vertex struct
     // then create vertex input state info
@@ -55,8 +60,12 @@ void HelloTriangleApplication::createGraphicsPipeline()
     pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
     // add depth format
     vk::Format depthFormat = findDepthFormat();
-    // Pipeline Rendering Create Info 
-    vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{.colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChainSurfaceFormat.format, .depthAttachmentFormat = depthFormat};
+    // Pipeline Rendering Create Info
+    vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = &swapChainSurfaceFormat.format,
+        .depthAttachmentFormat = depthFormat};
+
     vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo,
                                                 .stageCount = 2,
                                                 .pStages = shaderStages,

@@ -41,9 +41,11 @@ const std::vector<char const *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 
 #ifdef ENABLE_VALIDATION_LAYERS
-constexpr bool enableValidationLayers = false;
+    #pragma message("ENABLE_VALIDATION_LAYERS is defined")
+    constexpr bool enableValidationLayers = true;
 #else
-constexpr bool enableValidationLayers = true;
+    #pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
+    constexpr bool enableValidationLayers = false;
 #endif
 
 /**
@@ -245,13 +247,23 @@ private:
         if (!enableValidationLayers)
             return;
 
-        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
+        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo);
         vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
         vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{
             .messageSeverity = severityFlags,
             .messageType = messageTypeFlags,
             .pfnUserCallback = &debugCallback};
         debugMessenger = instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
+        
+        std::cout << "[DEBUG] Validation layers are active. Callback is registered and ready!" << std::endl;
+        
+        // Send a test message through the debug messenger to confirm it's working
+        vk::DebugUtilsMessengerCallbackDataEXT testCallbackData{};
+        testCallbackData.pMessage = "Validation layer callback test - if you see this, the debug messenger is working correctly!";
+        instance.submitDebugUtilsMessageEXT(
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo,
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral,
+            testCallbackData);
     }
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
     {
@@ -364,10 +376,28 @@ private:
 
     static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData, void *)
     {
-        if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
+        // Print all validation messages (errors, warnings, verbose info)
+        std::string severityStr;
+        switch (severity)
         {
-            std::cerr << "validation layer: type " << to_string(type) << " msg: " << pCallbackData->pMessage << std::endl;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+            severityStr = "[ERROR]";
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+            severityStr = "[WARNING]";
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+            severityStr = "[INFO]";
+            break;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            severityStr = "[VERBOSE]";
+            break;
+        default:
+            severityStr = "[UNKNOWN]";
         }
+
+        std::cerr << severityStr << " validation layer: type " << to_string(type) 
+                  << " msg: " << pCallbackData->pMessage << std::endl;
 
         return vk::False;
     }

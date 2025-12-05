@@ -70,15 +70,28 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
     vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
     // setup color attachment info
-    vk::RenderingAttachmentInfo colorAttachmentInfo = {
-        // which image view to render to
-        .imageView = swapChainImageViews[imageIndex],
-        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        // what to do before rendering
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        // what to do after rendering
-        .storeOp = vk::AttachmentStoreOp::eStore,
-        .clearValue = clearColor};
+    vk::RenderingAttachmentInfo colorAttachmentInfo[] = {
+        // swapchain image as color attachment
+        {// which image view to render to
+         .imageView = swapChainImageViews[imageIndex],
+         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+         // what to do before rendering
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         // what to do after rendering
+         .storeOp = vk::AttachmentStoreOp::eStore,
+         .clearValue = clearColor},
+        // posistion G-Buffer
+        {.imageView = *gBufferPositionImageView,
+         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         .storeOp = vk::AttachmentStoreOp::eStore,
+         .clearValue = clearColor},
+        // normal G-Buffer
+        {.imageView = *gBufferNormalImageView,
+         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         .storeOp = vk::AttachmentStoreOp::eStore,
+         .clearValue = clearColor}};
 
     // setup dapth attachment info
     vk::RenderingAttachmentInfo depthAttachmentInfo = {
@@ -92,8 +105,8 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     vk::RenderingInfo renderingInfo = {
         .renderArea = {.offset = {0, 0}, .extent = swapChainExtent},
         .layerCount = 1,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachmentInfo,
+        .colorAttachmentCount = 3,
+        .pColorAttachments = colorAttachmentInfo,
         .pDepthAttachment = &depthAttachmentInfo};
 
     /* ---begin rendering--- */

@@ -45,9 +45,11 @@ void HelloTriangleApplication::createGraphicsPipeline()
         .depthBoundsTestEnable = vk::False,
         .stencilTestEnable = vk::False};
     // Color blending
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment{.blendEnable = vk::False,
-                                                               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
-    vk::PipelineColorBlendStateCreateInfo colorBlending{.logicOpEnable = vk::False, .logicOp = vk::LogicOp::eCopy, .attachmentCount = 1, .pAttachments = &colorBlendAttachment};
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment{
+        .blendEnable = vk::False,
+        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
+    std::vector<vk::PipelineColorBlendAttachmentState> blendAttachments = {colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+    vk::PipelineColorBlendStateCreateInfo colorBlending{.logicOpEnable = vk::False, .logicOp = vk::LogicOp::eCopy, .attachmentCount = 3, .pAttachments = blendAttachments.data()};
 
     // Dynamic state
     std::vector dynamicStates = {
@@ -62,8 +64,8 @@ void HelloTriangleApplication::createGraphicsPipeline()
     vk::Format depthFormat = findDepthFormat();
     // Pipeline Rendering Create Info
     vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{
-        .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = &swapChainSurfaceFormat.format,
+        .colorAttachmentCount = 3,
+        .pColorAttachmentFormats = colorFormats,
         .depthAttachmentFormat = depthFormat};
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo,

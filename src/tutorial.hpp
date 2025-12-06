@@ -206,7 +206,7 @@ private:
         createCommandPool();
         //
         createDepthResources();
-        // createGbufferResources();
+        createGbufferResources();
         //
         createTextureImage();
         createTextureImageView();

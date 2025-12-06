@@ -2,11 +2,12 @@
 
 void HelloTriangleApplication::createGbufferResources()
 {
+    
     //
     createImage(
         swapChainExtent.width,
         swapChainExtent.height,
-        vk::Format::eR8G8B8A8Unorm,
+        vk::Format::eR32G32B32A32Sfloat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment,
         vk::MemoryPropertyFlagBits::eDeviceLocal,

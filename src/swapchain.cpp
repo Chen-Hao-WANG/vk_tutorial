@@ -67,6 +67,8 @@ void HelloTriangleApplication::recreateSwapChain()
     createSwapChain();
     createImageViews();
     createDepthResources();
+    //
+    createGbufferResources();
 }
 void HelloTriangleApplication::cleanupSwapChain()
 {

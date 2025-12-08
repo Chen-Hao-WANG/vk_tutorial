@@ -13,7 +13,7 @@ void HelloTriangleApplication::createGraphicsPipeline()
     vk::Format colorFormats[] = {
         swapChainSurfaceFormat.format,   // 0: Swapchain Color
         vk::Format::eR32G32B32A32Sfloat, // 1: Position
-        vk::Format::eR16G16B16A16Sfloat  // 2: Normal
+        vk::Format::eR32G32B32A32Sfloat  // 2: Normal
     };
 
     // get two vertex input descriptions from Vertex struct
@@ -44,7 +44,8 @@ void HelloTriangleApplication::createGraphicsPipeline()
         .depthCompareOp = vk::CompareOp::eLess,
         .depthBoundsTestEnable = vk::False,
         .stencilTestEnable = vk::False};
-    // Color blending
+
+    // Color blending for three attachments
     vk::PipelineColorBlendAttachmentState colorBlendAttachment{
         .blendEnable = vk::False,
         .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
@@ -68,8 +69,8 @@ void HelloTriangleApplication::createGraphicsPipeline()
         .pColorAttachmentFormats = colorFormats,
         .depthAttachmentFormat = depthFormat};
 
-    vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo,
-                                                .stageCount = 2,
+    vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo, // add pNext to link to Pipeline Rendering Create Info
+                                                .stageCount = 2, // vertex and fragment shaders, so two stages
                                                 .pStages = shaderStages,
                                                 .pVertexInputState = &vertexInputInfo,
                                                 .pInputAssemblyState = &inputAssembly,

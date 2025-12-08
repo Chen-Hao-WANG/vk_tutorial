@@ -61,7 +61,7 @@ struct Vertex
     glm::vec3 normal;
 
     /**
-     * @brief Get the Binding Description object
+     * @brief Get the Binding Description object: binding, stride, inputRate
      *
      * @return vk::VertexInputBindingDescription
      */
@@ -70,7 +70,7 @@ struct Vertex
         return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
     }
     /**
-     * @brief Get the Attribute Descriptions object
+     * @brief Get the Attribute Descriptions object: pos, color, texCoord, normal
      *
      * @return std::array<vk::VertexInputAttributeDescription, 4>
      */

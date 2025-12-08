@@ -27,9 +27,9 @@ struct VSOutput
 };
 struct PSOutput
 {
-    float4 color : SV_Target0;    // 
-    float4 worldPos : SV_Target1; // 
-    float4 normal : SV_Target2;   // 
+    float4 color : SV_Target0;    // swapchain(color)
+    float4 worldPos : SV_Target1; // world position
+    float4 normal : SV_Target2;   // normal
 };
 
 [shader("vertex")]
@@ -42,8 +42,10 @@ VSOutput vertMain(VSInput input)
 
     // clip space position
     output.svPosition = mul(ubo.proj, mul(ubo.view, worldPos));
-    //
+    
+    // normal in world space
     output.fragNormal = mul((float3x3)ubo.model, input.inNormal);
+
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

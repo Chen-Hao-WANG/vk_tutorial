@@ -6,10 +6,12 @@
 void HelloTriangleApplication::createGraphicsPipeline()
 {
     vk::raii::ShaderModule shaderModule = createShaderModule(readFile("shaders/shader.spv"));
-
+    // declare shader stages
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule, .pName = "vertMain"};
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaderModule, .pName = "fragMain"};
+    // combine shader stages
     vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    // color formats for multiple attachments
     vk::Format colorFormats[] = {
         swapChainSurfaceFormat.format,   // 0: Swapchain Color
         vk::Format::eR32G32B32A32Sfloat, // 1: Position

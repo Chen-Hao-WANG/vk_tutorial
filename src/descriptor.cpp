@@ -31,19 +31,100 @@ void HelloTriangleApplication::createDescriptorPool()
     4. specify max number of descriptor sets that can be allocated from the pool
     5. create the descriptor pool
     */
-    std::array poolSize{
-        vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
-        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT)};
+    std::array<vk::DescriptorPoolSize, 4> poolSizes;
+    // uniform buffer
+    poolSizes[0] = vk::DescriptorPoolSize{
+        .type = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = MAX_FRAMES_IN_FLIGHT};
+    // texture sampler
+    poolSizes[1] = vk::DescriptorPoolSize{
+        .type = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = MAX_FRAMES_IN_FLIGHT};
+    // light buffer
+    poolSizes[2] = vk::DescriptorPoolSize{
+        .type = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 10 // some work around number
+    };
+    // storage image
+    poolSizes[3] = vk::DescriptorPoolSize{
+        .type = vk::DescriptorType::eStorageImage,
+        .descriptorCount = 10 // some work around number
+    };
 
     vk::DescriptorPoolCreateInfo poolInfo{
         .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        .maxSets = MAX_FRAMES_IN_FLIGHT,
-        .poolSizeCount = static_cast<uint32_t>(poolSize.size()),
-        .pPoolSizes = poolSize.data()};
+        .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT + 10), // total number of descriptor sets that can be allocated
+        .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+        .pPoolSizes = poolSizes.data()};
 
     descriptorPool = vk::raii::DescriptorPool(device, poolInfo);
 }
+void HelloTriangleApplication::createComputeDescriptorSets()
+{
+    // Set
+    vk::DescriptorSetAllocateInfo allocInfo{
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = 1,
+        .pSetLayouts = &*computeDescriptorSetLayout};
 
+    computeDescriptorSet = std::move(device.allocateDescriptorSets(allocInfo).front());
+
+    // Write descriptor set info
+    vk::DescriptorImageInfo posInfo{
+        .sampler = *textureSampler,
+        .imageView = gBufferPositionImageView,
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+
+    vk::DescriptorImageInfo normalInfo{
+        .sampler = *textureSampler,
+        .imageView = gBufferNormalImageView,
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+
+    vk::DescriptorBufferInfo lightBufferInfo{
+        .buffer = lightBuffer,
+        .offset = 0,
+        .range = sizeof(Light) * lights.size()};
+
+    vk::DescriptorImageInfo outputInfo{
+        .imageView = storageImageView,
+        .imageLayout = vk::ImageLayout::eGeneral // for compute shader must be general layout
+    };
+    // Write descriptor set
+    std::array<vk::WriteDescriptorSet, 4> descriptorWrites;
+    // G-Buffer Position
+    descriptorWrites[0] = vk::WriteDescriptorSet{
+        .dstSet = *computeDescriptorSet,
+        .dstBinding = 0,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .pImageInfo = &posInfo};
+    // G-Buffer Normal
+    descriptorWrites[1] = vk::WriteDescriptorSet{
+        .dstSet = *computeDescriptorSet,
+        .dstBinding = 1,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .pImageInfo = &normalInfo};
+    // Light Buffer
+    descriptorWrites[2] = vk::WriteDescriptorSet{
+        .dstSet = *computeDescriptorSet,
+        .dstBinding = 2,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pBufferInfo = &lightBufferInfo};
+    // Storage Image
+    descriptorWrites[3] = vk::WriteDescriptorSet{
+        .dstSet = *computeDescriptorSet,
+        .dstBinding = 3,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageImage,
+        .pImageInfo = &outputInfo};
+    device.updateDescriptorSets(descriptorWrites, {});
+}
 void HelloTriangleApplication::createDescriptorSets()
 {
     /*
@@ -72,4 +153,47 @@ void HelloTriangleApplication::createDescriptorSets()
         //
         device.updateDescriptorSets(descriptorWrites, {});
     }
+}
+void HelloTriangleApplication::createComputeDescriptorSetLayout()
+{
+    /*
+    1. G-buffer position
+    2. normal
+    3. light
+    4. storage image for compute shader to write to
+    */
+    std::array<vk::DescriptorSetLayoutBinding, 4> bindings;
+    // Binding 0: G-Buffer Position (Input Texture)
+    bindings[0] = vk::DescriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute};
+
+    // Binding 1: G-Buffer Normal (Input Texture)
+    bindings[1] = vk::DescriptorSetLayoutBinding{
+        .binding = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute};
+
+    // Binding 2: Light Buffer
+    bindings[2] = vk::DescriptorSetLayoutBinding{
+        .binding = 2,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute};
+
+    // Binding 3: Storage Image (Output Image)
+    bindings[3] = vk::DescriptorSetLayoutBinding{
+        .binding = 3,
+        .descriptorType = vk::DescriptorType::eStorageImage,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute};
+
+    vk::DescriptorSetLayoutCreateInfo layoutInfo{
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
+        .pBindings = bindings.data()};
+
+    computeDescriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
 }

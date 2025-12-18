@@ -48,7 +48,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     //  Before starting rendering, transition the swapchain image layout for rendering
     // in Vulkan, image can be in a layout optimal for specific operations
     // we need to transition the image layout to the appropriate layout before rendering
-    transition_image_layout(
+    draw_transition_image_layout(
         swapChainImages[imageIndex],
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
@@ -57,7 +57,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, // dstStage
         vk::ImageAspectFlagBits::eColor);
-    transition_image_layout(
+    draw_transition_image_layout(
         *depthImage,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eDepthAttachmentOptimal,
@@ -129,7 +129,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
     commandBuffers[currentFrame].endRendering();
 
     // After rendering, transition the image layout for presentation
-    transition_image_layout(
+    draw_transition_image_layout(
         swapChainImages[imageIndex],
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR,
@@ -153,7 +153,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
  * @param dstStageMask
  * @param image_aspectMask
  */
-void HelloTriangleApplication::transition_image_layout(
+void HelloTriangleApplication::draw_transition_image_layout(
     vk::Image image,
     vk::ImageLayout oldLayout,
     vk::ImageLayout newLayout,
@@ -179,10 +179,12 @@ void HelloTriangleApplication::transition_image_layout(
             .levelCount = 1,
             .baseArrayLayer = 0,
             .layerCount = 1}};
+    
     vk::DependencyInfo dependencyInfo = {
         .dependencyFlags = {},
         .imageMemoryBarrierCount = 1,
         .pImageMemoryBarriers = &barrier};
+    
     commandBuffers[currentFrame].pipelineBarrier2(dependencyInfo);
 }
 void HelloTriangleApplication::createSyncObjects()

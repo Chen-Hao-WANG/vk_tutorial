@@ -72,7 +72,7 @@ void HelloTriangleApplication::createGraphicsPipeline()
         .depthAttachmentFormat = depthFormat};
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo, // add pNext to link to Pipeline Rendering Create Info
-                                                .stageCount = 2, // vertex and fragment shaders, so two stages
+                                                .stageCount = 2,                       // vertex and fragment shaders, so two stages
                                                 .pStages = shaderStages,
                                                 .pVertexInputState = &vertexInputInfo,
                                                 .pInputAssemblyState = &inputAssembly,
@@ -86,7 +86,26 @@ void HelloTriangleApplication::createGraphicsPipeline()
                                                 .renderPass = nullptr};
     graphicsPipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);
 }
+void HelloTriangleApplication::createComputePipeline()
+{
+    vk::raii::ShaderModule computeShaderModule = createShaderModule(readFile("shaders/restir.spv"));
 
+    vk::PipelineShaderStageCreateInfo computeShaderStageInfo{
+        .stage = vk::ShaderStageFlagBits::eCompute,
+        .module = computeShaderModule,
+        .pName = "main"};
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{
+        .setLayoutCount = 1,
+        .pSetLayouts = &*computeDescriptorSetLayout};
+    computePipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
+
+    vk::ComputePipelineCreateInfo pipelineInfo{
+        .stage = computeShaderStageInfo,
+        .layout = computePipelineLayout};
+
+    computePipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);
+}
 [[nodiscard]] vk::raii::ShaderModule HelloTriangleApplication::createShaderModule(const std::vector<char> &code) const
 {
     vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t *>(code.data())};

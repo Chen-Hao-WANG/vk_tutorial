@@ -56,50 +56,32 @@ void HelloTriangleApplication::createTextureImage()
 
     //  The last thing we did there was creating the texture image object, but it is still empty!
     // Now we need to copy the pixel data from the staging buffer to the image object.
-    texture_transitionImageLayout(textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    transitionImageLayout(textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    texture_transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
-
-
 /**
- * @brief Transition the image layout to a new layout
- * 
- * @param image 
- * @param oldLayout 
- * @param newLayout 
+ * @brief transition image layout helper function
+ *
+ * @param image
+ * @param oldLayout
+ * @param newLayout
  */
-void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
 {
+    auto commandBuffer = beginSingleTimeCommands();
 
-    // transition image to the right image layout first before copy to buffer
-    std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = beginSingleTimeCommands();
-
-    // using pipeline barrier to transition image layout(cool huh?)
     vk::ImageMemoryBarrier barrier{
         .oldLayout = oldLayout,
         .newLayout = newLayout,
         .image = image,
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1}};
-    /*
-    two type of layout transition we need to handle here:
-    1. undefined -> transfer dst optimal
-    2. transfer dst -> shader read should wait for transfer write to finish
-    (specifically the shader reads in the fragment shader, because that’s where we’re going to use the texture )
-    */
+        .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
 
-    // specify source access mask and destination access mask based on old and new layout
     vk::PipelineStageFlags sourceStage;
     vk::PipelineStageFlags destinationStage;
 
     if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
     {
-        // don't need to wait on anything
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
 
@@ -108,7 +90,6 @@ void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Ima
     }
     else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
     {
-        // wait for transfer write to finish
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 
@@ -119,19 +100,17 @@ void HelloTriangleApplication::texture_transitionImageLayout(const vk::raii::Ima
     {
         throw std::invalid_argument("unsupported layout transition!");
     }
-
     commandBuffer->pipelineBarrier(sourceStage, destinationStage, {}, {}, nullptr, barrier);
-
     endSingleTimeCommands(*commandBuffer);
 }
 
 /**
  * @brief Copy data from a buffer to an image
- * 
- * @param buffer 
- * @param image 
- * @param width 
- * @param height 
+ *
+ * @param buffer
+ * @param image
+ * @param width
+ * @param height
  */
 void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height)
 {

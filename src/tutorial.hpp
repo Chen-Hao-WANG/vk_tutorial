@@ -41,21 +41,22 @@ const std::vector<char const *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 
 #ifdef ENABLE_VALIDATION_LAYERS
-    #pragma message("ENABLE_VALIDATION_LAYERS is defined")
-    constexpr bool enableValidationLayers = true;
+#pragma message("ENABLE_VALIDATION_LAYERS is defined")
+constexpr bool enableValidationLayers = true;
 #else
-    #pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
-    constexpr bool enableValidationLayers = false;
+#pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
+constexpr bool enableValidationLayers = false;
 #endif
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
-struct Light{
-    glm::vec4 position;;
+struct Light
+{
+    glm::vec4 position;
     glm::vec4 color;
-}
+};
 /**
  * @brief Vertex data structure
  *
@@ -141,7 +142,10 @@ private:
     // descriptor pool
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
-
+    // light buffer
+    std::vector<Light> lights;
+    vk::raii::Buffer lightBuffer = nullptr;
+    vk::raii::DeviceMemory lightBufferMemory = nullptr;
     //
     std::vector<vk::raii::CommandBuffer> commandBuffers;
     //
@@ -179,7 +183,16 @@ private:
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
     uint32_t semaphoreIndex = 0;
-
+    // compute pipeline
+    vk::raii::Pipeline computePipeline = nullptr;
+    vk::raii::DescriptorSetLayout computeDescriptorSetLayout = nullptr;
+    vk::raii::PipelineLayout computePipelineLayout = nullptr;
+    vk::raii::DescriptorSet computeDescriptorSet = nullptr;
+    // storage_Image processed by compute shader
+    vk::raii::Image storageImage = nullptr;
+    vk::raii::DeviceMemory storageImageMemory = nullptr;
+    vk::raii::ImageView storageImageView = nullptr;
+    //
     std::vector<const char *> requiredDeviceExtension = {
         vk::KHRSwapchainExtensionName,
         vk::KHRSpirv14ExtensionName,
@@ -209,12 +222,17 @@ private:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
+        //
         createDescriptorSetLayout();
+        createComputeDescriptorSetLayout();
+        //
         createGraphicsPipeline();
+        createComputePipeline();
         createCommandPool();
         //
         createDepthResources();
         createGbufferResources();
+        createStorageImage();
         //
         createTextureImage();
         createTextureImageView();
@@ -225,8 +243,11 @@ private:
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+        createLightBuffer();
+        //
         createDescriptorPool();
         createDescriptorSets();
+        createComputeDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -262,9 +283,9 @@ private:
             .messageType = messageTypeFlags,
             .pfnUserCallback = &debugCallback};
         debugMessenger = instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
-        
+
         std::cout << "[DEBUG] Validation layers are active. Callback is registered and ready!" << std::endl;
-        
+
         // Send a test message through the debug messenger to confirm it's working
         vk::DebugUtilsMessengerCallbackDataEXT testCallbackData{};
         testCallbackData.pMessage = "Validation layer callback test - if you see this, the debug messenger is working correctly!";
@@ -300,7 +321,7 @@ private:
     void createCommandBuffers();
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);
-    void transition_image_layout(
+    void draw_transition_image_layout(
         vk::Image image,
         vk::ImageLayout oldLayout,
         vk::ImageLayout newLayout,
@@ -319,7 +340,7 @@ private:
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
-    void texture_transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
     void copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height);
     void createTextureImageView();
     void createTextureSampler();
@@ -404,7 +425,7 @@ private:
             severityStr = "[UNKNOWN]";
         }
 
-        std::cerr << severityStr << " validation layer: type " << to_string(type) 
+        std::cerr << severityStr << " validation layer: type " << to_string(type)
                   << " msg: " << pCallbackData->pMessage << std::endl;
 
         return vk::False;
@@ -528,12 +549,12 @@ private:
     {
         std::cout << "=== VALIDATION LAYER TEST ===" << std::endl;
         std::cout << "enableValidationLayers = " << (enableValidationLayers ? "TRUE" : "FALSE") << std::endl;
-        
+
         if (enableValidationLayers)
         {
             std::cout << "Debug messenger created: " << (*debugMessenger ? "YES" : "NO") << std::endl;
             std::cout << "Requested layers:" << std::endl;
-            for (const auto& layer : validationLayers)
+            for (const auto &layer : validationLayers)
             {
                 std::cout << "  - " << layer << std::endl;
             }
@@ -544,4 +565,11 @@ private:
         }
         std::cout << "=============================" << std::endl;
     }
+    //
+    void createLightBuffer();
+    // compute shader related functions
+    void createStorageImage();
+    void createComputeDescriptorSetLayout();
+    void createComputePipeline();
+    void createComputeDescriptorSets();
 };

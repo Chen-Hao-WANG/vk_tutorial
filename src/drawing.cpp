@@ -40,23 +40,22 @@ void HelloTriangleApplication::createCommandBuffers()
 
 void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
 {
-    // command buffer recording are used for draww operations and mamory transfer
-    // those are not directly use vulkan funtion calls
-    // but recorded into command buffers which are then submitted to queue for execution
-    commandBuffers[currentFrame].begin({});
-    // Starting dynamic rendering
-    //  Before starting rendering, transition the swapchain image layout for rendering
-    // in Vulkan, image can be in a layout optimal for specific operations
-    // we need to transition the image layout to the appropriate layout before rendering
+    auto &cmd = commandBuffers[currentFrame];
+    cmd.begin({});
+
+    // --- PHASE 1: Prepare Image Layouts for Rasterization ---
+    // Transition Swapchain image to Color Attachment layout
     draw_transition_image_layout(
         swapChainImages[imageIndex],
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
-        {},                                                 // srcAccessMask (no need to wait for previous operations)
-        vk::AccessFlagBits2::eColorAttachmentWrite,         // dstAccessMask
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput, // dstStage
+        {},
+        vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::ImageAspectFlagBits::eColor);
+
+    // Transition Depth image to Depth Attachment layout
     draw_transition_image_layout(
         *depthImage,
         vk::ImageLayout::eUndefined,
@@ -66,42 +65,33 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
         vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
         vk::ImageAspectFlagBits::eDepth);
-    //
+    draw_transition_image_layout(
+        *gBufferPositionImage,
+        vk::ImageLayout::eUndefined, // Use Undefined to discard previous content (or handle ReadOnly if you want to keep it)
+        vk::ImageLayout::eColorAttachmentOptimal,
+        {}, vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::ImageAspectFlagBits::eColor);
+
+    draw_transition_image_layout(
+        *gBufferNormalImage,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eColorAttachmentOptimal,
+        {}, vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::ImageAspectFlagBits::eColor);
+    // --- PHASE 2: Rasterization Pass (Fill G-Buffers) ---
     vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
     vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
-    // setup color attachment info
+
+    // Setup G-Buffer attachments (Swapchain Color, World Position, Normal)
     vk::RenderingAttachmentInfo colorAttachmentInfo[] = {
-        // swapchain image as color attachment
-        {// which image view to render to
-         .imageView = swapChainImageViews[imageIndex],
-         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-         // what to do before rendering
-         .loadOp = vk::AttachmentLoadOp::eClear,
-         // what to do after rendering
-         .storeOp = vk::AttachmentStoreOp::eStore,
-         .clearValue = clearColor},
-        // posistion G-Buffer
-        {.imageView = *gBufferPositionImageView,
-         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-         .loadOp = vk::AttachmentLoadOp::eClear,
-         .storeOp = vk::AttachmentStoreOp::eStore,
-         .clearValue = clearColor},
-        // normal G-Buffer
-        {.imageView = *gBufferNormalImageView,
-         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-         .loadOp = vk::AttachmentLoadOp::eClear,
-         .storeOp = vk::AttachmentStoreOp::eStore,
-         .clearValue = clearColor}};
+        {.imageView = swapChainImageViews[imageIndex], .imageLayout = vk::ImageLayout::eColorAttachmentOptimal, .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eStore, .clearValue = clearColor},
+        {.imageView = *gBufferPositionImageView, .imageLayout = vk::ImageLayout::eColorAttachmentOptimal, .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eStore, .clearValue = clearColor},
+        {.imageView = *gBufferNormalImageView, .imageLayout = vk::ImageLayout::eColorAttachmentOptimal, .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eStore, .clearValue = clearColor}};
 
-    // setup dapth attachment info
-    vk::RenderingAttachmentInfo depthAttachmentInfo = {
-        .imageView = depthImageView,
-        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eDontCare,
-        .clearValue = clearDepth};
+    vk::RenderingAttachmentInfo depthAttachmentInfo = {.imageView = depthImageView, .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal, .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eDontCare, .clearValue = clearDepth};
 
-    // set up rendering info
     vk::RenderingInfo renderingInfo = {
         .renderArea = {.offset = {0, 0}, .extent = swapChainExtent},
         .layerCount = 1,
@@ -109,38 +99,98 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex)
         .pColorAttachments = colorAttachmentInfo,
         .pDepthAttachment = &depthAttachmentInfo};
 
-    /* ---begin rendering--- */
-    commandBuffers[currentFrame].beginRendering(renderingInfo);
-    // basic drawing commands
-    // tell vulkan what to do by binding command buffers to graphics pipeline
-    commandBuffers[currentFrame].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
-    // we specify the viewport and scissor dynamically so we need to set them here
-    commandBuffers[currentFrame].setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChainExtent.width), static_cast<float>(swapChainExtent.height), 0.0f, 1.0f));
-    commandBuffers[currentFrame].setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChainExtent));
-    // bind vertex and index buffer
-    commandBuffers[currentFrame].bindVertexBuffers(0, *vertexBuffer, {0});
-    commandBuffers[currentFrame].bindIndexBuffer(*indexBuffer, 0, vk::IndexType::eUint32);
+    cmd.beginRendering(renderingInfo);
+    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
+    cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, (float)swapChainExtent.width, (float)swapChainExtent.height, 0.0f, 1.0f));
+    cmd.setScissor(0, vk::Rect2D({0, 0}, swapChainExtent));
 
-    // bind the right descriptor set for each frame before draw indexed
-    commandBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
-    // use drawIndexed to draw with index buffer, instead of vkCmdDraw
-    commandBuffers[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0); // Finishing up
-    /* ---end rendering--- */
-    commandBuffers[currentFrame].endRendering();
+    cmd.bindVertexBuffers(0, *vertexBuffer, {0});
+    cmd.bindIndexBuffer(*indexBuffer, 0, vk::IndexType::eUint32);
 
-    // After rendering, transition the image layout for presentation
+    // Bind Graphics Descriptor Set (Set 0: MVP matrices)
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
+    cmd.drawIndexed((uint32_t)indices.size(), 1, 0, 0, 0);
+    cmd.endRendering();
+
+    // --- PHASE 3: Synchronize and Transition G-Buffers for Compute Read ---
+    // Transition Normal G-Buffer
+    draw_transition_image_layout(*gBufferNormalImage,
+                                 vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eComputeShader,
+                                 vk::ImageAspectFlagBits::eColor);
+
+    // Transition Position G-Buffer
+    draw_transition_image_layout(*gBufferPositionImage,
+                                 vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eComputeShader,
+                                 vk::ImageAspectFlagBits::eColor);
+
+    // --- PHASE 4: Compute Pass (Lighting / ReSTIR) ---
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline);
+
+    // Bind Compute Descriptor Set (Set 0: G-Buffers, Lights, Output Image)
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *computePipelineLayout, 0, *computeDescriptorSet, nullptr);
+
+    // Calculate Workgroup counts based on window size (assuming 16x16 local groups in shader)
+    uint32_t groupCountX = (swapChainExtent.width + 15) / 16;
+    uint32_t groupCountY = (swapChainExtent.height + 15) / 16;
+    cmd.dispatch(groupCountX, groupCountY, 1);
+
+    // --- PHASE 5: Transfer Compute Result (storageImage) to Swapchain ---
+
+    // 1. Transition Storage Image to Transfer Source layout
+    draw_transition_image_layout(*storageImage,
+                                 vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
+                                 vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eTransferRead,
+                                 vk::PipelineStageFlagBits2::eComputeShader, vk::PipelineStageFlagBits2::eTransfer,
+                                 vk::ImageAspectFlagBits::eColor);
+
+    // 2. Transition Swapchain Image to Transfer Destination layout
+    draw_transition_image_layout(swapChainImages[imageIndex],
+                                 vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferDstOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eTransferWrite,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eTransfer,
+                                 vk::ImageAspectFlagBits::eColor);
+
+    // 3. Blit (scaled copy) Compute result into the Swapchain Image
+    vk::ImageBlit blitRegion{
+        .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+        // Fix: Explicitly construct std::array
+        .srcOffsets = std::array<vk::Offset3D, 2>{
+            vk::Offset3D(0, 0, 0),
+            vk::Offset3D((int32_t)swapChainExtent.width, (int32_t)swapChainExtent.height, 1)},
+        .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+        // Fix: Explicitly construct std::array
+        .dstOffsets = std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D((int32_t)swapChainExtent.width, (int32_t)swapChainExtent.height, 1)}};
+
+    cmd.blitImage(*storageImage, vk::ImageLayout::eTransferSrcOptimal,
+                  swapChainImages[imageIndex], vk::ImageLayout::eTransferDstOptimal,
+                  blitRegion, vk::Filter::eLinear);
+
+    // --- PHASE 6: Final Transitions for Presentation ---
+    // Prepare Swapchain Image for the OS presentation engine
     draw_transition_image_layout(
         swapChainImages[imageIndex],
-        vk::ImageLayout::eColorAttachmentOptimal,
+        vk::ImageLayout::eTransferDstOptimal,
         vk::ImageLayout::ePresentSrcKHR,
-        vk::AccessFlagBits2::eColorAttachmentWrite,         // srcAccessMask
-        {},                                                 // dstAccessMask
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput, // srcStage
-        vk::PipelineStageFlagBits2::eBottomOfPipe,          // dstStage
+        vk::AccessFlagBits2::eTransferWrite,
+        {},
+        vk::PipelineStageFlagBits2::eTransfer,
+        vk::PipelineStageFlagBits2::eBottomOfPipe,
         vk::ImageAspectFlagBits::eColor);
-    // end command buffer recording
-    commandBuffers[currentFrame].end();
+
+    // Transition Storage Image back to General layout for the next frame's compute write
+    draw_transition_image_layout(*storageImage,
+                                 vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral,
+                                 vk::AccessFlagBits2::eTransferRead, vk::AccessFlagBits2::eShaderWrite,
+                                 vk::PipelineStageFlagBits2::eTransfer, vk::PipelineStageFlagBits2::eComputeShader,
+                                 vk::ImageAspectFlagBits::eColor);
+
+    cmd.end();
 }
+
 /**
  * @brief Transition the image layout to a new layout
  *
@@ -179,12 +229,12 @@ void HelloTriangleApplication::draw_transition_image_layout(
             .levelCount = 1,
             .baseArrayLayer = 0,
             .layerCount = 1}};
-    
+
     vk::DependencyInfo dependencyInfo = {
         .dependencyFlags = {},
         .imageMemoryBarrierCount = 1,
         .pImageMemoryBarriers = &barrier};
-    
+
     commandBuffers[currentFrame].pipelineBarrier2(dependencyInfo);
 }
 void HelloTriangleApplication::createSyncObjects()

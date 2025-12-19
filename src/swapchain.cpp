@@ -11,7 +11,7 @@ void HelloTriangleApplication::createSwapChain()
                                                    .imageColorSpace = swapChainSurfaceFormat.colorSpace,
                                                    .imageExtent = swapChainExtent,
                                                    .imageArrayLayers = 1,
-                                                   .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+                                                   .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
                                                    .imageSharingMode = vk::SharingMode::eExclusive,
                                                    .preTransform = surfaceCapabilities.currentTransform,
                                                    .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
@@ -66,12 +66,35 @@ void HelloTriangleApplication::recreateSwapChain()
     //
     createSwapChain();
     createImageViews();
-    createDepthResources();
     //
+    createDepthResources();
     createGbufferResources();
+    createStorageImage(); 
+    createDescriptorSets();
+    createComputeDescriptorSets();
 }
 void HelloTriangleApplication::cleanupSwapChain()
 {
     swapChainImageViews.clear();
     swapChain = nullptr;
+    // Descriptor sets are invalidated as part of swapchain cleanup;
+    // avoid freeing them individually to prevent issues with pools
+    // that may not have VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT.
+    descriptorSets.clear();
+    computeDescriptorSet = nullptr;
+    depthImageView = nullptr;
+    depthImage = nullptr;
+    depthImageMemory = nullptr;
+
+    gBufferPositionImageView = nullptr;
+    gBufferPositionImage = nullptr;
+    gBufferPositionImageMemory = nullptr;
+
+    gBufferNormalImageView = nullptr;
+    gBufferNormalImage = nullptr;
+    gBufferNormalImageMemory = nullptr;
+
+    storageImageView = nullptr;
+    storageImage = nullptr;
+    storageImageMemory = nullptr;
 }

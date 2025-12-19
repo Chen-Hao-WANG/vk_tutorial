@@ -42,12 +42,86 @@ void HelloTriangleApplication::createInstance()
         }
     }
 
+    auto hasExt = [&](char const *name) -> bool {
+        return std::ranges::any_of(requiredExtensions, [&](char const *e) { return strcmp(e, name) == 0; });
+    };
+
+    constexpr char const *kExtLayerSettings       = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
+    constexpr char const *kExtValidationFeatures  = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
+    constexpr char const *kKhronosValidationLayer = "VK_LAYER_KHRONOS_validation";
+
+    // Optional: advanced validation features (pNext chain)
+    void const *pNext = nullptr;
+
+    // --- Modern path: VK_EXT_layer_settings (preferred) ---
+    vk::LayerSettingsCreateInfoEXT layerSettingsCI{};
+    std::array<vk::LayerSettingEXT, 3> layerSettings{};
+    vk::Bool32 enableBool = VK_TRUE;
+
+    // --- Legacy fallback: VK_EXT_validation_features (deprecated) ---
+    std::vector<vk::ValidationFeatureEnableEXT> validationFeatureEnables;
+    vk::ValidationFeaturesEXT validationFeatures{};
+
+    if (enableValidationLayers && hasExt(kExtLayerSettings))
+    {
+        // These setting names are interpreted by VK_LAYER_KHRONOS_validation
+        layerSettings = {
+            vk::LayerSettingEXT{
+                .pLayerName = kKhronosValidationLayer,
+                .pSettingName = "validate_gpu_assisted",
+                .type = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount = 1,
+                .pValues = &enableBool,
+            },
+            vk::LayerSettingEXT{
+                .pLayerName = kKhronosValidationLayer,
+                .pSettingName = "validate_gpu_assisted_reserve_binding_slot",
+                .type = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount = 1,
+                .pValues = &enableBool,
+            },
+            vk::LayerSettingEXT{
+                .pLayerName = kKhronosValidationLayer,
+                .pSettingName = "validate_sync",
+                .type = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount = 1,
+                .pValues = &enableBool,
+            },
+        };
+
+        layerSettingsCI = vk::LayerSettingsCreateInfoEXT{
+            .settingCount = static_cast<uint32_t>(layerSettings.size()),
+            .pSettings = layerSettings.data(),
+        };
+
+        pNext = &layerSettingsCI;
+    }
+    else if (enableValidationLayers && hasExt(kExtValidationFeatures))
+    {
+        // Fallback for older runtimes (deprecated extension)
+        validationFeatureEnables = {
+            vk::ValidationFeatureEnableEXT::eGpuAssisted,
+            vk::ValidationFeatureEnableEXT::eGpuAssistedReserveBindingSlot,
+            vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
+        };
+
+        validationFeatures = vk::ValidationFeaturesEXT{
+            .enabledValidationFeatureCount = static_cast<uint32_t>(validationFeatureEnables.size()),
+            .pEnabledValidationFeatures = validationFeatureEnables.data(),
+        };
+
+        pNext = &validationFeatures;
+    }
+
     vk::InstanceCreateInfo createInfo{
+        .pNext = pNext,
         .pApplicationInfo = &appInfo,
         .enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
-        .ppEnabledLayerNames = requiredLayers.data(),
+        .ppEnabledLayerNames = requiredLayers.empty() ? nullptr : requiredLayers.data(),
         .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
-        .ppEnabledExtensionNames = requiredExtensions.data()};
+        .ppEnabledExtensionNames = requiredExtensions.empty() ? nullptr : requiredExtensions.data(),
+    };
+
     instance = vk::raii::Instance(context, createInfo);
 }
 
@@ -57,9 +131,29 @@ std::vector<const char *> HelloTriangleApplication::getRequiredExtensions()
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
     std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
     if (enableValidationLayers)
     {
         extensions.push_back(vk::EXTDebugUtilsExtensionName);
+
+        constexpr char const *kExtLayerSettings      = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
+        constexpr char const *kExtValidationFeatures = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
+
+        auto available = context.enumerateInstanceExtensionProperties();
+
+        auto supported = [&](char const *extName) -> bool {
+            return std::ranges::any_of(available, [&](auto const &ep) { return strcmp(ep.extensionName, extName) == 0; });
+        };
+
+        // Prefer modern VK_EXT_layer_settings; fall back to deprecated validation_features if needed.
+        if (supported(kExtLayerSettings))
+        {
+            extensions.push_back(kExtLayerSettings);
+        }
+        else if (supported(kExtValidationFeatures))
+        {
+            extensions.push_back(kExtValidationFeatures);
+        }
     }
 
     return extensions;

@@ -1,0 +1,17 @@
+---
+# Keep it simple: use Google style as the baseline and only override the
+# essentials for this repo.
+Language: Cpp
+BasedOnStyle: Google
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# Practical line length for Vulkan-heavy code.
+ColumnLimit: 100
+
+# Parse modern C++ correctly (affects formatting of some constructs).
+Standard: c++20
+...

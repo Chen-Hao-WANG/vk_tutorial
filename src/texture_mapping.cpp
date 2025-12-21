@@ -5,8 +5,7 @@
 3. create a sampler to sample the image in the shader
 4. add a combined image sampler descriptor to sample from the texture
  */
-void HelloTriangleApplication::createTextureImage()
-{
+void HelloTriangleApplication::createTextureImage() {
     /*
     1. specify image width, height, format, tiling, usage, memory properties
     2. create buffer in host visible memory to load pixel data
@@ -15,10 +14,10 @@ void HelloTriangleApplication::createTextureImage()
     5. transition image layout for shader reading
     */
     int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels =
+        stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
-    if (!pixels)
-    {
+    if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
 
@@ -27,38 +26,35 @@ void HelloTriangleApplication::createTextureImage()
     // create staging buffer in host visible memory
     vk::raii::Buffer stagingBuffer({});
     vk::raii::DeviceMemory stagingBufferMemory({});
-    // this buffer should be in host visible memory so that we can map it as a transfer source to copy to the image
+    // this buffer should be in host visible memory so that we can map it as a transfer source to
+    // copy to the image
     createBuffer(
-        imageSize,
-        vk::BufferUsageFlagBits::eTransferSrc,
+        imageSize, vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-        stagingBuffer,
-        stagingBufferMemory);
+        stagingBuffer, stagingBufferMemory);
 
     // copy pixel data "from image" to "staging buffer"
-    void *data = stagingBufferMemory.mapMemory(0, imageSize);
+    void* data = stagingBufferMemory.mapMemory(0, imageSize);
     memcpy(data, pixels, imageSize);
     stagingBufferMemory.unmapMemory();
     // free image memory loaded by stb_image
     stbi_image_free(pixels);
 
-    // better to access pixel value(now in the staging buffer) by using image object(Pixels within an image object are known as texels)
+    // better to access pixel value(now in the staging buffer) by using image object(Pixels within
+    // an image object are known as texels)
 
-    createImage(
-        texWidth,
-        texHeight,
-        vk::Format::eR8G8B8A8Srgb,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        textureImage,
-        textureImageMemory);
+    createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                vk::MemoryPropertyFlagBits::eDeviceLocal, textureImage, textureImageMemory);
 
     //  The last thing we did there was creating the texture image object, but it is still empty!
     // Now we need to copy the pixel data from the staging buffer to the image object.
-    transitionImageLayout(textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    transitionImageLayout(textureImage, vk::ImageLayout::eUndefined,
+                          vk::ImageLayout::eTransferDstOptimal);
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth),
+                      static_cast<uint32_t>(texHeight));
+    transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal,
+                          vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 /**
  * @brief transition image layout helper function
@@ -67,40 +63,37 @@ void HelloTriangleApplication::createTextureImage()
  * @param oldLayout
  * @param newLayout
  */
-void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
-{
+void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image& image,
+                                                     vk::ImageLayout oldLayout,
+                                                     vk::ImageLayout newLayout) {
     vk::AccessFlags2 srcAccessMask = {};
     vk::AccessFlags2 dstAccessMask = {};
     vk::PipelineStageFlags2 srcStageMask = {};
     vk::PipelineStageFlags2 dstStageMask = {};
     vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor;
 
-    if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
-    {
+    if (oldLayout == vk::ImageLayout::eUndefined &&
+        newLayout == vk::ImageLayout::eTransferDstOptimal) {
         srcAccessMask = vk::AccessFlagBits2::eNone;
         dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
         srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
         dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-    }
-    else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
-    {
+    } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal &&
+               newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
         dstAccessMask = vk::AccessFlagBits2::eShaderRead;
         srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
         dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
-    }
-    else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral)
-    {
+    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
         srcAccessMask = vk::AccessFlagBits2::eNone;
         dstAccessMask = vk::AccessFlagBits2::eShaderWrite;
         srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
         dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
-    }
-    else
-    {
+    } else {
         throw std::invalid_argument("unsupported layout transition!");
     }
-    transitionImageLayout(*image, oldLayout, newLayout, srcAccessMask, dstAccessMask, srcStageMask, dstStageMask, aspectMask);
+    transitionImageLayout(*image, oldLayout, newLayout, srcAccessMask, dstAccessMask, srcStageMask,
+                          dstStageMask, aspectMask);
 }
 
 /**
@@ -111,25 +104,21 @@ void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image &imag
  * @param width
  * @param height
  */
-void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height)
-{
-
-    /*before we can use the image as a texture in shader, we need to copy the pixel data from the staging buffer to the image object*/
+void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer& buffer,
+                                                 vk::raii::Image& image, uint32_t width,
+                                                 uint32_t height) {
+    /*before we can use the image as a texture in shader, we need to copy the pixel data from the
+     * staging buffer to the image object*/
     std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = beginSingleTimeCommands();
 
-    vk::BufferImageCopy region{
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
-        .imageOffset = {0, 0, 0},
-        .imageExtent = {width, height, 1}};
+    vk::BufferImageCopy region{.bufferOffset = 0,
+                               .bufferRowLength = 0,
+                               .bufferImageHeight = 0,
+                               .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                               .imageOffset = {0, 0, 0},
+                               .imageExtent = {width, height, 1}};
 
-    commandBuffer->copyBufferToImage(
-        buffer,
-        image,
-        vk::ImageLayout::eTransferDstOptimal,
-        {region});
+    commandBuffer->copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, {region});
 
     endSingleTimeCommands(*commandBuffer);
 }
@@ -138,17 +127,16 @@ void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer &buffer,
  * @brief create texture image view
  * call createImageView helper function
  */
-void HelloTriangleApplication::createTextureImageView()
-{
-    textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
+void HelloTriangleApplication::createTextureImageView() {
+    textureImageView =
+        createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
 
 /**
  * @brief create texture sampler
  *  setup sampler to read from the texture image in the shader
  */
-void HelloTriangleApplication::createTextureSampler()
-{
+void HelloTriangleApplication::createTextureSampler() {
     /*
     setup sampler to read from the texture image in the shader
     1. get device properties to check max sampler anisotropy

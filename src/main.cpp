@@ -1,7 +1,8 @@
-#include "tutorial.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
-#include <cstdlib>
+
+#include "tutorial.hpp"
 
 int main() {
     try {

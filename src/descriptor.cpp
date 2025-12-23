@@ -4,26 +4,7 @@ createDescriptorSetLayout():ubo for MVP transformation at vertex shader stage, C
 for texture sampler at frag shader stage createDescriptorPool(): two pool size for ubo and texture
 sampler createDescriptorSets():bind two different kind of discriptor info to desciptor set
 */
-void HelloTriangleApplication::createDescriptorSetLayout() {
-    /*
-    every binding need to be described in vk::DescriptorSetLayoutBinding structure
-    1. binding : binding number in shader
-    2. descriptorType : type of resource (uniform buffer, storage buffer, image sampler, etc.)
-    3. descriptorCount : number of descriptors in this binding
-    4. stageFlags : which shader stages will access this binding
-    5. pImmutableSamplers : used for image sampler, can be nullptr for uniform buffer
-    */
-    // create an array of bindings if multiple bindings are needed
-    std::array bindings = {
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1,
-                                       vk::ShaderStageFlagBits::eVertex, nullptr),
-        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
-                                       vk::ShaderStageFlagBits::eFragment, nullptr)};
 
-    vk::DescriptorSetLayoutCreateInfo layoutInfo{
-        .bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data()};
-    descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
-}
 void HelloTriangleApplication::createDescriptorPool() {
     /*
     1. descriptor pool is used to allocate descriptor sets
@@ -59,73 +40,36 @@ void HelloTriangleApplication::createDescriptorPool() {
 
     descriptorPool = vk::raii::DescriptorPool(device, poolInfo);
 }
-void HelloTriangleApplication::createComputeDescriptorSets() {
-    // Set
-    vk::DescriptorSetAllocateInfo allocInfo{.descriptorPool = descriptorPool,
-                                            .descriptorSetCount = 1,
-                                            .pSetLayouts = &*computeDescriptorSetLayout};
 
-    computeDescriptorSet = std::move(device.allocateDescriptorSets(allocInfo).front());
+/*
+every binding need to be described in vk::DescriptorSetLayoutBinding structure
+    1. binding : binding number in shader
+    2. descriptorType : type of resource (uniform buffer, storage buffer, image sampler, etc.)
+    3. descriptorCount : number of descriptors in this binding
+    4. stageFlags : which shader stages will access this binding
+    5. pImmutableSamplers : used for image sampler, can be nullptr for uniform buffer
+    */
+void HelloTriangleApplication::createDescriptorSetLayout() {
+    // create an array of bindings if multiple bindings are needed
+    std::array<vk::DescriptorSetLayoutBinding, 2> bindings;
+    // binding 0 : uniform buffer object (MVP matrices)
+    bindings[0] = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1,
+                                                 vk::ShaderStageFlagBits::eVertex, nullptr);
+    // binding 1 : combined image sampler (texture sampler)
+    bindings[1] = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
+                                                 vk::ShaderStageFlagBits::eFragment, nullptr);
 
-    // Write descriptor set info
-    vk::DescriptorImageInfo posInfo{.sampler = *textureSampler,
-                                    .imageView = gBufferPositionImageView,
-                                    .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
-
-    vk::DescriptorImageInfo normalInfo{.sampler = *textureSampler,
-                                       .imageView = gBufferNormalImageView,
-                                       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
-
-    vk::DescriptorBufferInfo lightBufferInfo{
-        .buffer = lightBuffer, .offset = 0, .range = sizeof(Light) * lights.size()};
-
-    vk::DescriptorImageInfo outputInfo{
-        .imageView = storageImageView,
-        .imageLayout = vk::ImageLayout::eGeneral  // for compute shader must be general layout
-    };
-    // Write descriptor set
-    std::array<vk::WriteDescriptorSet, 4> descriptorWrites;
-    // G-Buffer Position
-    descriptorWrites[0] =
-        vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
-                               .dstBinding = 0,
-                               .dstArrayElement = 0,
-                               .descriptorCount = 1,
-                               .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                               .pImageInfo = &posInfo};
-    // G-Buffer Normal
-    descriptorWrites[1] =
-        vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
-                               .dstBinding = 1,
-                               .dstArrayElement = 0,
-                               .descriptorCount = 1,
-                               .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                               .pImageInfo = &normalInfo};
-    // Light Buffer
-    descriptorWrites[2] =
-        vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
-                               .dstBinding = 2,
-                               .dstArrayElement = 0,
-                               .descriptorCount = 1,
-                               .descriptorType = vk::DescriptorType::eStorageBuffer,
-                               .pBufferInfo = &lightBufferInfo};
-    // Storage Image
-    descriptorWrites[3] =
-        vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
-                               .dstBinding = 3,
-                               .dstArrayElement = 0,
-                               .descriptorCount = 1,
-                               .descriptorType = vk::DescriptorType::eStorageImage,
-                               .pImageInfo = &outputInfo};
-    device.updateDescriptorSets(descriptorWrites, {});
+    vk::DescriptorSetLayoutCreateInfo layoutInfo{
+        .bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data()};
+    descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
 }
-void HelloTriangleApplication::createDescriptorSets() {
-    /*
+/*
     1. descriptor sets are describe by vk::DesciptorSetLayoutAllocateInfo structure
     2. specify the descriptor pool and layouts for each descriptor set
     3. allocate the descriptor sets from the pool using vkAllocateDescriptorSets
     4. use for loop to update each descriptor set with the corresponding uniform buffer info
     */
+void HelloTriangleApplication::createDescriptorSets() {
     std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo{
         .descriptorPool = descriptorPool,
@@ -143,6 +87,8 @@ void HelloTriangleApplication::createDescriptorSets() {
                                           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
         //
         std::array descriptorWrites{
+            // now we have two descriptor writes
+            // one for uniform buffer and one for texture sampler
             vk::WriteDescriptorSet{.dstSet = descriptorSets[i],
                                    .dstBinding = 0,
                                    .dstArrayElement = 0,
@@ -199,4 +145,68 @@ void HelloTriangleApplication::createComputeDescriptorSetLayout() {
         .bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data()};
 
     computeDescriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
+}
+void HelloTriangleApplication::createComputeDescriptorSets() {
+    std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
+    // Set
+    vk::DescriptorSetAllocateInfo allocInfo{
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+        .pSetLayouts = layouts.data()};
+
+    computeDescriptorSet.clear();
+    computeDescriptorSet = std::move(device.allocateDescriptorSets(allocInfo).front());
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        // Write descriptor set info
+        vk::DescriptorImageInfo posInfo{.sampler = *textureSampler,
+                                        .imageView = gBufferPositionImageView,
+                                        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+
+        vk::DescriptorImageInfo normalInfo{.sampler = *textureSampler,
+                                           .imageView = gBufferNormalImageView,
+                                           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+
+        vk::DescriptorBufferInfo lightBufferInfo{
+            .buffer = lightBuffer, .offset = 0, .range = sizeof(Light) * lights.size()};
+
+        vk::DescriptorImageInfo outputInfo{
+            .imageView = storageImageView,
+            .imageLayout = vk::ImageLayout::eGeneral  // for compute shader must be general layout
+        };
+        // Write descriptor set
+        std::array<vk::WriteDescriptorSet, 4> descriptorWrites;
+        // G-Buffer Position
+        descriptorWrites[0] =
+            vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
+                                   .dstBinding = 0,
+                                   .dstArrayElement = 0,
+                                   .descriptorCount = 1,
+                                   .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                   .pImageInfo = &posInfo};
+        // G-Buffer Normal
+        descriptorWrites[1] =
+            vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
+                                   .dstBinding = 1,
+                                   .dstArrayElement = 0,
+                                   .descriptorCount = 1,
+                                   .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                   .pImageInfo = &normalInfo};
+        // Light Buffer
+        descriptorWrites[2] =
+            vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
+                                   .dstBinding = 2,
+                                   .dstArrayElement = 0,
+                                   .descriptorCount = 1,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .pBufferInfo = &lightBufferInfo};
+        // Storage Image
+        descriptorWrites[3] =
+            vk::WriteDescriptorSet{.dstSet = *computeDescriptorSet,
+                                   .dstBinding = 3,
+                                   .dstArrayElement = 0,
+                                   .descriptorCount = 1,
+                                   .descriptorType = vk::DescriptorType::eStorageImage,
+                                   .pImageInfo = &outputInfo};
+        device.updateDescriptorSets(descriptorWrites, {});
+    }
 }

@@ -13,6 +13,7 @@ struct UniformBuffer
     float4x4 view;
     float4x4 proj;
 };
+[[vk::binding(0, 0)]]
 ConstantBuffer<UniformBuffer> ubo;
 
 struct VSOutput
@@ -27,7 +28,7 @@ struct VSOutput
 };
 struct PSOutput
 {
-    float4 color : SV_Target0;    // swapchain(color)
+    float4 color : SV_Target0;    // albedo
     float4 worldPos : SV_Target1; // world position
     float4 normal : SV_Target2;   // normal
 };
@@ -50,6 +51,7 @@ VSOutput vertMain(VSInput input)
     output.fragTexCoord = input.inTexCoord;
     return output;
 }
+[[vk::binding(1, 0)]]
 Sampler2D texture;
 
 [shader("fragment")]

@@ -1,7 +1,8 @@
 #pragma once
+#include <assert.h>
+
 #include <algorithm>
 #include <array>
-#include <assert.h>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
@@ -18,18 +19,18 @@
 import vulkan_hpp;
 #endif
 
-#define GLFW_INCLUDE_VULKAN // REQUIRED only for GLFW CreateWindowSurface.
+#define GLFW_INCLUDE_VULKAN  // REQUIRED only for GLFW CreateWindowSurface.
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#include <stb_image.h>
+#include <tiny_obj_loader.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
-
-#include <tiny_obj_loader.h>
-#include <stb_image.h>
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
@@ -37,8 +38,7 @@ const std::string MODEL_PATH = "../../../../model/viking_room.obj";
 const std::string TEXTURE_PATH = "../../../../textures/viking_room.png";
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<char const *> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"};
+const std::vector<char const*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
 #ifdef ENABLE_VALIDATION_LAYERS
 #pragma message("ENABLE_VALIDATION_LAYERS is defined")
@@ -52,8 +52,7 @@ constexpr bool enableValidationLayers = false;
  * @brief
  *
  */
-struct Light
-{
+struct Light {
     glm::vec4 position;
     glm::vec4 color;
 };
@@ -61,9 +60,7 @@ struct Light
  * @brief Vertex data structure
  *
  */
-struct Vertex
-{
-
+struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
@@ -74,44 +71,36 @@ struct Vertex
      *
      * @return vk::VertexInputBindingDescription
      */
-    static vk::VertexInputBindingDescription getBindingDescription()
-    {
-        return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
-    }
+    static vk::VertexInputBindingDescription getBindingDescription() { return {0, sizeof(Vertex), vk::VertexInputRate::eVertex}; }
     /**
      * @brief Get the Attribute Descriptions object: pos, color, texCoord, normal
      *
      * @return std::array<vk::VertexInputAttributeDescription, 4>
      */
-    static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions()
-    {
-        return {
-            vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
-            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
-            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord)),
-            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal))};
+    static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        return {vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
+                vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
+                vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord)),
+                vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal))};
     }
 };
 
-struct UniformBufferObject
-{
+struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
 };
-class HelloTriangleApplication
-{
-public:
-    void run()
-    {
+class HelloTriangleApplication {
+   public:
+    void run() {
         initWindow();
         initVulkan();
         mainLoop();
         cleanup();
     }
 
-private:
-    GLFWwindow *window = nullptr;
+   private:
+    GLFWwindow* window = nullptr;
     vk::raii::Context context;
     vk::raii::Instance instance = nullptr;
     vk::raii::DebugUtilsMessengerEXT debugMessenger = nullptr;
@@ -138,7 +127,7 @@ private:
     // uniform buffer
     std::vector<vk::raii::Buffer> uniformBuffers;
     std::vector<vk::raii::DeviceMemory> uniformBuffersMemory;
-    std::vector<void *> uniformBuffersMapped;
+    std::vector<void*> uniformBuffersMapped;
     // descriptor pool
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
@@ -170,10 +159,10 @@ private:
     vk::raii::Image gBufferPositionImage = nullptr;
     vk::raii::DeviceMemory gBufferPositionImageMemory = nullptr;
     vk::raii::ImageView gBufferPositionImageView = nullptr;
-    // G-Buffer Material / Flux
-    vk::raii::Image gBufferMaterialImage = nullptr;
-    vk::raii::DeviceMemory gBufferMaterialImageMemory = nullptr;
-    vk::raii::ImageView gBufferMaterialImageView = nullptr;
+    // G-Buffer alebedo
+    vk::raii::Image gBufferAlbedoImage = nullptr;
+    vk::raii::DeviceMemory gBufferAlbedoImageMemory = nullptr;
+    vk::raii::ImageView gBufferAlbedoImageView = nullptr;
 
     // class member for model
     std::vector<Vertex> vertices;
@@ -193,14 +182,10 @@ private:
     vk::raii::DeviceMemory storageImageMemory = nullptr;
     vk::raii::ImageView storageImageView = nullptr;
     //
-    std::vector<const char *> requiredDeviceExtension = {
-        vk::KHRSwapchainExtensionName,
-        vk::KHRSpirv14ExtensionName,
-        vk::KHRSynchronization2ExtensionName,
-        vk::KHRCreateRenderpass2ExtensionName};
+    std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName, vk::KHRSpirv14ExtensionName,
+                                                        vk::KHRSynchronization2ExtensionName, vk::KHRCreateRenderpass2ExtensionName};
 
-    void initWindow()
-    {
+    void initWindow() {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -212,8 +197,7 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 
-    void initVulkan()
-    {
+    void initVulkan() {
         createInstance();
         setupDebugMessenger();
         testValidationLayers();
@@ -252,18 +236,15 @@ private:
         createSyncObjects();
     }
 
-    void mainLoop()
-    {
-        while (!glfwWindowShouldClose(window))
-        {
+    void mainLoop() {
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             drawFrame();
         }
-        device.waitIdle(); // wait for device to finish operations before destroying resources
+        device.waitIdle();  // wait for device to finish operations before destroying resources
     }
 
-    void cleanup()
-    {
+    void cleanup() {
         cleanupSwapChain();
 
         glfwDestroyWindow(window);
@@ -271,32 +252,31 @@ private:
         glfwTerminate();
     }
     void createInstance();
-    void setupDebugMessenger()
-    {
-        if (!enableValidationLayers)
-            return;
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) return;
 
-        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
+        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo);
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+                                                           vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+                                                           vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
         vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{
-            .messageSeverity = severityFlags,
-            .messageType = messageTypeFlags,
-            .pfnUserCallback = &debugCallback};
+            .messageSeverity = severityFlags, .messageType = messageTypeFlags, .pfnUserCallback = &debugCallback};
         debugMessenger = instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
 
         std::cout << "[DEBUG] Validation layers are active. Callback is registered and ready!" << std::endl;
 
         // Send a test message through the debug messenger to confirm it's working
         vk::DebugUtilsMessengerCallbackDataEXT testCallbackData{};
-        testCallbackData.pMessage = "Validation layer callback test - if you see this, the debug messenger is working correctly!";
-        instance.submitDebugUtilsMessageEXT(
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo,
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral,
-            testCallbackData);
+        testCallbackData.pMessage =
+            "Validation layer callback test - if you see this, the debug messenger is working "
+            "correctly!";
+        instance.submitDebugUtilsMessageEXT(vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo, vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral,
+                                            testCallbackData);
     }
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
-    {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
     void createSurface();
@@ -321,37 +301,30 @@ private:
     void createCommandBuffers();
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);
-    void draw_transition_image_layout(
-        vk::Image image,
-        vk::ImageLayout oldLayout,
-        vk::ImageLayout newLayout,
-        vk::AccessFlags2 srcAccessMask,
-        vk::AccessFlags2 dstAccessMask,
-        vk::PipelineStageFlags2 srcStageMask,
-        vk::PipelineStageFlags2 dstStageMask,
-        vk::ImageAspectFlags image_aspectMask);
+    void draw_transition_image_layout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
+                                      vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
+                                      vk::ImageAspectFlags image_aspectMask);
     // Waiting for the previous frame
     void drawFrame();
     // recreate swap chain
     void recreateSwapChain();
     void cleanupSwapChain();
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-    void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer &buffer, vk::raii::DeviceMemory &bufferMemory);
+    void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer& buffer,
+                      vk::raii::DeviceMemory& bufferMemory);
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
-    void transitionImageLayout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-    void copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height);
+    void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void copyBufferToImage(const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height);
     void createTextureImageView();
     void createTextureSampler();
     void createDepthResources();
     vk::Format findDepthFormat();
-    [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const;
-    static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities)
-    {
+    [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char>& code) const;
+    static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapabilities) {
         auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
-        if ((0 < surfaceCapabilities.maxImageCount) && (surfaceCapabilities.maxImageCount < minImageCount))
-        {
+        if ((0 < surfaceCapabilities.maxImageCount) && (surfaceCapabilities.maxImageCount < minImageCount)) {
             minImageCount = surfaceCapabilities.maxImageCount;
         }
         return minImageCount;
@@ -361,80 +334,65 @@ private:
      *
      * @return vk::Format
      */
-    vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
-    {
-        for (const auto format : candidates)
-        {
+    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+        for (const auto format : candidates) {
             vk::FormatProperties props = physicalDevice.getFormatProperties(format);
 
-            if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
-            {
+            if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
                 return format;
-            }
-            else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
-            {
+            } else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
                 return format;
             }
         }
         throw std::runtime_error("failed to find supported format!");
     }
-    static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
-    {
+    static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
         assert(!availableFormats.empty());
-        const auto formatIt = std::ranges::find_if(
-            availableFormats,
-            [](const auto &format)
-            { return format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear; });
+        const auto formatIt = std::ranges::find_if(availableFormats, [](const auto& format) {
+            return format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
+        });
         return formatIt != availableFormats.end() ? *formatIt : availableFormats[0];
     }
 
-    static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes)
-    {
-        assert(std::ranges::any_of(availablePresentModes, [](auto presentMode)
-                                   { return presentMode == vk::PresentModeKHR::eFifo; }));
-        return std::ranges::any_of(availablePresentModes,
-                                   [](const vk::PresentModeKHR value)
-                                   { return vk::PresentModeKHR::eMailbox == value; })
+    static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes) {
+        assert(std::ranges::any_of(availablePresentModes, [](auto presentMode) { return presentMode == vk::PresentModeKHR::eFifo; }));
+        return std::ranges::any_of(availablePresentModes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; })
                    ? vk::PresentModeKHR::eMailbox
                    : vk::PresentModeKHR::eFifo;
     }
 
-    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
+    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
-    std::vector<const char *> getRequiredExtensions();
+    std::vector<const char*> getRequiredExtensions();
 
-    static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData, void *)
-    {
+    static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type,
+                                                          const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
         // Print all validation messages (errors, warnings, verbose info)
         std::string severityStr;
-        switch (severity)
-        {
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-            severityStr = "[ERROR]";
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-            severityStr = "[WARNING]";
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-            severityStr = "[INFO]";
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            severityStr = "[VERBOSE]";
-            break;
-        default:
-            severityStr = "[UNKNOWN]";
+        switch (severity) {
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+                severityStr = "[ERROR]";
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+                severityStr = "[WARNING]";
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+                severityStr = "[INFO]";
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+                severityStr = "[VERBOSE]";
+                break;
+            default:
+                severityStr = "[UNKNOWN]";
         }
 
-        std::cerr << severityStr << " validation layer: type " << to_string(type)
-                  << " msg: " << pCallbackData->pMessage << std::endl;
+        std::cerr << severityStr << " validation layer: type " << to_string(type) << " msg: " << pCallbackData->pMessage << std::endl;
 
         return vk::False;
     }
-    static std::vector<char> readFile(const std::string &filename)
-    {
+    static std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
-        if (!file.is_open())
-        {
+        if (!file.is_open()) {
             throw std::runtime_error("failed to open file!");
         }
         std::vector<char> buffer(file.tellg());
@@ -444,34 +402,27 @@ private:
         return buffer;
     }
 
-    std::unique_ptr<vk::raii::CommandBuffer> beginSingleTimeCommands()
-    {
+    std::unique_ptr<vk::raii::CommandBuffer> beginSingleTimeCommands() {
         // helper funtion for transition
-        vk::CommandBufferAllocateInfo allocInfo{
-            .commandPool = commandPool,
-            .level = vk::CommandBufferLevel::ePrimary,
-            .commandBufferCount = 1};
-        std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = std::make_unique<vk::raii::CommandBuffer>(std::move(device.allocateCommandBuffers(allocInfo).front()));
+        vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
+        std::unique_ptr<vk::raii::CommandBuffer> commandBuffer =
+            std::make_unique<vk::raii::CommandBuffer>(std::move(device.allocateCommandBuffers(allocInfo).front()));
 
-        vk::CommandBufferBeginInfo beginInfo{
-            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+        vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
         commandBuffer->begin(beginInfo);
         return commandBuffer;
     }
-    void endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer)
-    {
+    void endSingleTimeCommands(vk::raii::CommandBuffer& commandBuffer) {
         commandBuffer.end();
 
-        vk::SubmitInfo submitInfo{
-            .commandBufferCount = 1,
-            .pCommandBuffers = &*commandBuffer};
+        vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandBuffer};
         queue.submit(submitInfo, nullptr);
         queue.waitIdle();
     }
-    void copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
-    {
+    void copyBuffer(vk::raii::Buffer& srcBuffer, vk::raii::Buffer& dstBuffer, vk::DeviceSize size) {
         /*
-        copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like drawing commands
+        copy data from srcBuffer to dstBuffer, the whole process is done by command buffer,just like
+        drawing commands
 
         */
 
@@ -498,26 +449,17 @@ private:
      * @param image
      * @param imageMemory
      */
-    void createImage(
-        uint32_t width,
-        uint32_t height,
-        vk::Format format,
-        vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage,
-        vk::MemoryPropertyFlags properties,
-        vk::raii::Image &image,
-        vk::raii::DeviceMemory &imageMemory)
-    {
-        vk::ImageCreateInfo imageInfo{
-            .imageType = vk::ImageType::e2D,
-            .format = format,
-            .extent = {width, height, 1},
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = vk::SampleCountFlagBits::e1,
-            .tiling = tiling,
-            .usage = usage,
-            .sharingMode = vk::SharingMode::eExclusive};
+    void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage,
+                     vk::MemoryPropertyFlags properties, vk::raii::Image& image, vk::raii::DeviceMemory& imageMemory) {
+        vk::ImageCreateInfo imageInfo{.imageType = vk::ImageType::e2D,
+                                      .format = format,
+                                      .extent = {width, height, 1},
+                                      .mipLevels = 1,
+                                      .arrayLayers = 1,
+                                      .samples = vk::SampleCountFlagBits::e1,
+                                      .tiling = tiling,
+                                      .usage = usage,
+                                      .sharingMode = vk::SharingMode::eExclusive};
 
         image = vk::raii::Image(device, imageInfo);
 
@@ -535,32 +477,23 @@ private:
      * @param aspectFlags
      * @return vk::raii::ImageView
      */
-    vk::raii::ImageView createImageView(vk::raii::Image &image, vk::Format format, vk::ImageAspectFlags aspectFlags)
-    {
+    vk::raii::ImageView createImageView(vk::raii::Image& image, vk::Format format, vk::ImageAspectFlags aspectFlags) {
         vk::ImageViewCreateInfo viewInfo{
-            .image = image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = format,
-            .subresourceRange = {aspectFlags, 0, 1, 0, 1}};
+            .image = image, .viewType = vk::ImageViewType::e2D, .format = format, .subresourceRange = {aspectFlags, 0, 1, 0, 1}};
         return vk::raii::ImageView(device, viewInfo);
     }
     void createGbufferResources();
-    void testValidationLayers()
-    {
+    void testValidationLayers() {
         std::cout << "=== VALIDATION LAYER TEST ===" << std::endl;
         std::cout << "enableValidationLayers = " << (enableValidationLayers ? "TRUE" : "FALSE") << std::endl;
 
-        if (enableValidationLayers)
-        {
+        if (enableValidationLayers) {
             std::cout << "Debug messenger created: " << (*debugMessenger ? "YES" : "NO") << std::endl;
             std::cout << "Requested layers:" << std::endl;
-            for (const auto &layer : validationLayers)
-            {
+            for (const auto& layer : validationLayers) {
                 std::cout << "  - " << layer << std::endl;
             }
-        }
-        else
-        {
+        } else {
             std::cout << "Validation layers are DISABLED" << std::endl;
         }
         std::cout << "=============================" << std::endl;
@@ -572,8 +505,7 @@ private:
     void createComputeDescriptorSetLayout();
     void createComputePipeline();
     void createComputeDescriptorSets();
-    void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
-                               vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
-                               vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
+    void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
+                               vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
                                vk::ImageAspectFlags image_aspectMask);
 };

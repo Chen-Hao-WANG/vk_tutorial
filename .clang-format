@@ -10,7 +10,7 @@ TabWidth: 4
 UseTab: Never
 
 # Practical line length for Vulkan-heavy code.
-ColumnLimit: 100
+ColumnLimit: 150
 
 # Parse modern C++ correctly (affects formatting of some constructs).
 Standard: c++20

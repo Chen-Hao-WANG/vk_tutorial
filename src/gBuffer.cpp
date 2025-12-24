@@ -20,6 +20,16 @@ void HelloTriangleApplication::createGbufferResources() {
 
     gBufferNormalImageView = createImageView(gBufferNormalImage, vk::Format::eR32G32B32A32Sfloat,
                                              vk::ImageAspectFlagBits::eColor);
+    // albedo / material / flux
+    createImage(swapChainExtent.width, swapChainExtent.height, vk::Format::eR32G32B32A32Sfloat,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
+                    vk::ImageUsageFlagBits::eStorage,
+                vk::MemoryPropertyFlagBits::eDeviceLocal, gBufferMaterialImage,
+                gBufferMaterialImageMemory);
+
+    gBufferMaterialImageView = createImageView(
+        gBufferMaterialImage, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
 }
 /**
  * @brief create storage image for compute shader to write to.

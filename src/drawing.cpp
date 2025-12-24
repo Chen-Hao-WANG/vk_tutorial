@@ -39,12 +39,14 @@ void HelloTriangleApplication::createCommandBuffers() {
 
 void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     auto& cmd = commandBuffers[currentFrame];
+    gBufferMaterialImage = swapChainImages[imageIndex];
+
     cmd.begin({});
 
     // --- PHASE 1: Prepare Image Layouts for Rasterization ---
     // Transition Swapchain image to Color Attachment layout
     draw_transition_image_layout(
-        swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
+        *gBufferMaterialImage, vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
@@ -77,7 +79,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
 
     // Setup G-Buffer attachments (Swapchain Color, World Position, Normal)
     vk::RenderingAttachmentInfo colorAttachmentInfo[] = {
-        {.imageView = swapChainImageViews[imageIndex],
+        {.imageView = *gBufferMaterialImageView,
          .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
          .loadOp = vk::AttachmentLoadOp::eClear,
          .storeOp = vk::AttachmentStoreOp::eStore,
@@ -135,6 +137,13 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
         vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(
+        *gBufferMaterialImage, vk::ImageLayout::eColorAttachmentOptimal,
+        vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor);
+
+    
 
     // --- PHASE 4: Compute Pass (Lighting / ReSTIR) ---
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline);
@@ -159,7 +168,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
 
     // 2. Transition Swapchain Image to Transfer Destination layout
     draw_transition_image_layout(
-        swapChainImages[imageIndex], vk::ImageLayout::eColorAttachmentOptimal,
+        *gBufferMaterialImage, vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::PipelineStageFlagBits2::eTransfer, vk::ImageAspectFlagBits::eColor);
@@ -177,13 +186,13 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
             vk::Offset3D(0, 0, 0),
             vk::Offset3D((int32_t)swapChainExtent.width, (int32_t)swapChainExtent.height, 1)}};
 
-    cmd.blitImage(*storageImage, vk::ImageLayout::eTransferSrcOptimal, swapChainImages[imageIndex],
+    cmd.blitImage(*storageImage, vk::ImageLayout::eTransferSrcOptimal, *gBufferMaterialImage,
                   vk::ImageLayout::eTransferDstOptimal, blitRegion, vk::Filter::eLinear);
 
     // --- PHASE 6: Final Transitions for Presentation ---
     // Prepare Swapchain Image for the OS presentation engine
     draw_transition_image_layout(
-        swapChainImages[imageIndex], vk::ImageLayout::eTransferDstOptimal,
+        *gBufferMaterialImage, vk::ImageLayout::eTransferDstOptimal,
         vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits2::eTransferWrite, {},
         vk::PipelineStageFlagBits2::eTransfer, vk::PipelineStageFlagBits2::eBottomOfPipe,
         vk::ImageAspectFlagBits::eColor);

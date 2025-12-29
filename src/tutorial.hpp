@@ -182,8 +182,14 @@ class HelloTriangleApplication {
     vk::raii::DeviceMemory storageImageMemory = nullptr;
     vk::raii::ImageView storageImageView = nullptr;
     //
-    std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName, vk::KHRSpirv14ExtensionName,
-                                                        vk::KHRSynchronization2ExtensionName, vk::KHRCreateRenderpass2ExtensionName};
+    std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName,
+                                                        vk::KHRSpirv14ExtensionName,
+                                                        vk::KHRSynchronization2ExtensionName,
+                                                        vk::KHRCreateRenderpass2ExtensionName,
+                                                        vk::KHRAccelerationStructureExtensionName,
+                                                        vk::KHRRayQueryExtensionName,
+                                                        vk::KHRDeferredHostOperationsExtensionName,
+                                                        vk::KHRBufferDeviceAddressExtensionName};
 
     void initWindow() {
         glfwInit();
@@ -508,4 +514,16 @@ class HelloTriangleApplication {
     void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
                                vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
                                vk::ImageAspectFlags image_aspectMask);
+
+    /*Ray tracing*/
+    void createAccelerationStructures();
+
+    vk::DeviceAddress getVertAddress(const vk::raii::Buffer& buffer) {
+        vk::BufferDeviceAddressInfo vertex_addr_info{.buffer = *buffer};
+        return device.getBufferAddressKHR(vertex_addr_info);
+    }
+    vk::DeviceAddress getIndexAddr(const vk::raii::Buffer& buffer) {
+        vk::BufferDeviceAddressInfo index_addr_info{.buffer = *buffer};
+        return device.getBufferAddressKHR(index_addr_info);
+    }
 };

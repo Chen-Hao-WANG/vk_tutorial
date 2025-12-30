@@ -15,7 +15,8 @@ StructuredBuffer<Light> lights;
 
 [[vk::binding(4, 0)]]
 RWTexture2D<float4> outputImage;
-
+[[vk::binding(5, 0)]]
+RaytracingAccelerationStructure tlas;
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void compMain(uint3 dispatchThreadID: SV_DispatchThreadID)
@@ -32,12 +33,53 @@ void compMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     if (worldPos.w > 0.5)
     {
         Light L = lights[0];
-
-        float3 lightDir = normalize(L.position.xyz - worldPos.xyz);
+        
+        // Calculate Light Vector
+        float3 lightVec = L.position.xyz - worldPos.xyz;
+        float lightDist = length(lightVec);
+        float3 lightDir = normalize(lightVec);
+        
         float NdotL = max(dot(normalize(normal.xyz), lightDir), 0.0);
+        
+        // --- RAY QUERY SHADOWS START ---
+        float shadow = 1.0;
 
-        float3 finalColor = albedo * (L.color.rgb * NdotL);
+        // Only cast a ray if the surface is facing the light
+        if (NdotL > 0.0) 
+        {
+            // 1. Define the Ray
+            RayDesc ray;
+            ray.Origin = worldPos.xyz;
+            ray.Direction = lightDir;
+            ray.TMin = 0.05;          // Small bias to prevent self-shadowing (shadow acne)
+            ray.TMax = lightDist;     // Distance to the light source
 
+            // 2. Initialize RayQuery
+            // RAY_FLAG_FORCE_OPAQUE: Treat all geometry as opaque (faster)
+            // RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH: Stop as soon as we hit *anything* (we only care about visibility)
+            RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+            
+            // 3. Start Traversal
+            q.TraceRayInline(
+                tlas,               // The Top Level Acceleration Structure
+                RAY_FLAG_NONE,      // Ray flags
+                0xFF,               // Instance mask (0xFF matches everything)
+                ray                 // The ray definition
+            );
+
+            // 4. Execute traversal loop
+            q.Proceed();
+
+            // 5. Check result
+            // If the committed status is NOT "COMMITTED_NOTHING", it means we hit something blocking the light.
+            if (q.CommittedStatus() != COMMITTED_NOTHING)
+            {
+                shadow = 0.1; // In shadow (ambient only)
+            }
+        }
+        // --- RAY QUERY SHADOWS END ---
+
+        float3 finalColor = albedo * (L.color.rgb * NdotL) * shadow;
         outputImage[pixelCoord] = float4(finalColor, 1.0);
     }
     else

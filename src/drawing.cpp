@@ -41,57 +41,75 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
 
     // --- PHASE 1: Prepare Image Layouts for Rasterization ---
     // Transition Swapchain image to Color Attachment layout
-    draw_transition_image_layout(*gBufferAlbedoImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, {},
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(*gBufferAlbedoImage,
+                                 vk::ImageLayout::eUndefined,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 {},
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::PipelineStageFlagBits2::eTopOfPipe,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::ImageAspectFlagBits::eColor);
 
     // Transition Depth image to Depth Attachment layout
-    draw_transition_image_layout(*depthImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
-                                 vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+    draw_transition_image_layout(*depthImage,
+                                 vk::ImageLayout::eUndefined,
+                                 vk::ImageLayout::eDepthAttachmentOptimal,
+                                 vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                                 vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
                                  vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                                  vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
                                  vk::ImageAspectFlagBits::eDepth);
     // Transition Position G-Buffer
-    draw_transition_image_layout(*gBufferPositionImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, {},
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(*gBufferPositionImage,
+                                 vk::ImageLayout::eUndefined,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 {},
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::PipelineStageFlagBits2::eTopOfPipe,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::ImageAspectFlagBits::eColor);
     // Transition Normal G-Buffer
-    draw_transition_image_layout(*gBufferNormalImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, {},
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(*gBufferNormalImage,
+                                 vk::ImageLayout::eUndefined,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 {},
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::PipelineStageFlagBits2::eTopOfPipe,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::ImageAspectFlagBits::eColor);
 
     // --- PHASE 2: Rasterization Pass (Fill G-Buffers) ---
     vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
     vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
     // Setup G-Buffer attachments (Alebedo, World Position, Normal)
-    vk::RenderingAttachmentInfo colorAttachmentInfo[] = {{.imageView = *gBufferAlbedoImageView,
+    vk::RenderingAttachmentInfo colorAttachmentInfo[] = {{.imageView   = *gBufferAlbedoImageView,
                                                           .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                                                          .loadOp = vk::AttachmentLoadOp::eClear,
-                                                          .storeOp = vk::AttachmentStoreOp::eStore,
-                                                          .clearValue = clearColor},
-                                                         {.imageView = *gBufferPositionImageView,
+                                                          .loadOp      = vk::AttachmentLoadOp::eClear,
+                                                          .storeOp     = vk::AttachmentStoreOp::eStore,
+                                                          .clearValue  = clearColor},
+                                                         {.imageView   = *gBufferPositionImageView,
                                                           .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                                                          .loadOp = vk::AttachmentLoadOp::eClear,
-                                                          .storeOp = vk::AttachmentStoreOp::eStore,
-                                                          .clearValue = clearColor},
-                                                         {.imageView = *gBufferNormalImageView,
+                                                          .loadOp      = vk::AttachmentLoadOp::eClear,
+                                                          .storeOp     = vk::AttachmentStoreOp::eStore,
+                                                          .clearValue  = clearColor},
+                                                         {.imageView   = *gBufferNormalImageView,
                                                           .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                                                          .loadOp = vk::AttachmentLoadOp::eClear,
-                                                          .storeOp = vk::AttachmentStoreOp::eStore,
-                                                          .clearValue = clearColor}};
+                                                          .loadOp      = vk::AttachmentLoadOp::eClear,
+                                                          .storeOp     = vk::AttachmentStoreOp::eStore,
+                                                          .clearValue  = clearColor}};
 
-    vk::RenderingAttachmentInfo depthAttachmentInfo = {.imageView = depthImageView,
+    vk::RenderingAttachmentInfo depthAttachmentInfo = {.imageView   = depthImageView,
                                                        .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-                                                       .loadOp = vk::AttachmentLoadOp::eClear,
-                                                       .storeOp = vk::AttachmentStoreOp::eDontCare,
-                                                       .clearValue = clearDepth};
+                                                       .loadOp      = vk::AttachmentLoadOp::eClear,
+                                                       .storeOp     = vk::AttachmentStoreOp::eDontCare,
+                                                       .clearValue  = clearDepth};
 
-    vk::RenderingInfo renderingInfo = {.renderArea = {.offset = {0, 0}, .extent = swapChainExtent},
-                                       .layerCount = 1,
+    vk::RenderingInfo renderingInfo = {.renderArea           = {.offset = {0, 0}, .extent = swapChainExtent},
+                                       .layerCount           = 1,
                                        .colorAttachmentCount = 3,
-                                       .pColorAttachments = colorAttachmentInfo,
-                                       .pDepthAttachment = &depthAttachmentInfo};
+                                       .pColorAttachments    = colorAttachmentInfo,
+                                       .pDepthAttachment     = &depthAttachmentInfo};
     //
     cmd.beginRendering(renderingInfo);
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
@@ -108,19 +126,31 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     cmd.endRendering();
     // --- PHASE 3: Synchronize and Transition G-Buffers for Compute Read ---
     // Transition Normal G-Buffer
-    draw_transition_image_layout(*gBufferNormalImage, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eComputeShader,
+    draw_transition_image_layout(*gBufferNormalImage,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 vk::ImageLayout::eShaderReadOnlyOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::AccessFlagBits2::eShaderRead,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::PipelineStageFlagBits2::eComputeShader,
                                  vk::ImageAspectFlagBits::eColor);
 
     // Transition Position G-Buffer
-    draw_transition_image_layout(*gBufferPositionImage, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eComputeShader,
+    draw_transition_image_layout(*gBufferPositionImage,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 vk::ImageLayout::eShaderReadOnlyOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::AccessFlagBits2::eShaderRead,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::PipelineStageFlagBits2::eComputeShader,
                                  vk::ImageAspectFlagBits::eColor);
-    draw_transition_image_layout(*gBufferAlbedoImage, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-                                 vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eComputeShader,
+    draw_transition_image_layout(*gBufferAlbedoImage,
+                                 vk::ImageLayout::eColorAttachmentOptimal,
+                                 vk::ImageLayout::eShaderReadOnlyOptimal,
+                                 vk::AccessFlagBits2::eColorAttachmentWrite,
+                                 vk::AccessFlagBits2::eShaderRead,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                 vk::PipelineStageFlagBits2::eComputeShader,
                                  vk::ImageAspectFlagBits::eColor);
 
     // --- PHASE 4: Compute Pass (Lighting / ReSTIR) ---
@@ -137,13 +167,23 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     // --- PHASE 5: Transfer Compute Result (storageImage) to Swapchain ---
 
     // 1. Transition Storage Image to Transfer Source layout
-    draw_transition_image_layout(*storageImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits2::eShaderWrite,
-                                 vk::AccessFlagBits2::eTransferRead, vk::PipelineStageFlagBits2::eComputeShader,
-                                 vk::PipelineStageFlagBits2::eTransfer, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(*storageImage,
+                                 vk::ImageLayout::eGeneral,
+                                 vk::ImageLayout::eTransferSrcOptimal,
+                                 vk::AccessFlagBits2::eShaderWrite,
+                                 vk::AccessFlagBits2::eTransferRead,
+                                 vk::PipelineStageFlagBits2::eComputeShader,
+                                 vk::PipelineStageFlagBits2::eTransfer,
+                                 vk::ImageAspectFlagBits::eColor);
 
     // 2. Transition Swapchain Image to Transfer Destination layout
-    draw_transition_image_layout(swapChainImages[imageIndex], vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, {},
-                                 vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eTransfer,
+    draw_transition_image_layout(swapChainImages[imageIndex],
+                                 vk::ImageLayout::eUndefined,
+                                 vk::ImageLayout::eTransferDstOptimal,
+                                 {},  // srcAccessMask (None is fine here)
+                                 vk::AccessFlagBits2::eTransferWrite,
+                                 vk::PipelineStageFlagBits2::eColorAttachmentOutput,  // <--- CHANGED: Wait for the semaphore!
+                                 vk::PipelineStageFlagBits2::eTransfer,
                                  vk::ImageAspectFlagBits::eColor);
 
     // 3. Blit (scaled copy) Compute result into the Swapchain Image
@@ -157,17 +197,31 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
         .dstOffsets =
             std::array<vk::Offset3D, 2>{vk::Offset3D(0, 0, 0), vk::Offset3D((int32_t)swapChainExtent.width, (int32_t)swapChainExtent.height, 1)}};
 
-    cmd.blitImage(*storageImage, vk::ImageLayout::eTransferSrcOptimal, swapChainImages[imageIndex], vk::ImageLayout::eTransferDstOptimal, blitRegion,
+    cmd.blitImage(*storageImage,
+                  vk::ImageLayout::eTransferSrcOptimal,
+                  swapChainImages[imageIndex],
+                  vk::ImageLayout::eTransferDstOptimal,
+                  blitRegion,
                   vk::Filter::eLinear);
     // --- PHASE 6: Final Transitions for Presentation ---
     // Prepare Swapchain Image for the OS presentation engine
-    draw_transition_image_layout(swapChainImages[imageIndex], vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
-                                 vk::AccessFlagBits2::eTransferWrite, {}, vk::PipelineStageFlagBits2::eTransfer,
-                                 vk::PipelineStageFlagBits2::eBottomOfPipe, vk::ImageAspectFlagBits::eColor);
+    draw_transition_image_layout(swapChainImages[imageIndex],
+                                 vk::ImageLayout::eTransferDstOptimal,
+                                 vk::ImageLayout::ePresentSrcKHR,
+                                 vk::AccessFlagBits2::eTransferWrite,
+                                 {},
+                                 vk::PipelineStageFlagBits2::eTransfer,
+                                 vk::PipelineStageFlagBits2::eBottomOfPipe,
+                                 vk::ImageAspectFlagBits::eColor);
 
     // Transition Storage Image back to General layout for the next frame's compute write
-    draw_transition_image_layout(*storageImage, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral, vk::AccessFlagBits2::eTransferRead,
-                                 vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTransfer, vk::PipelineStageFlagBits2::eComputeShader,
+    draw_transition_image_layout(*storageImage,
+                                 vk::ImageLayout::eTransferSrcOptimal,
+                                 vk::ImageLayout::eGeneral,
+                                 vk::AccessFlagBits2::eTransferRead,
+                                 vk::AccessFlagBits2::eShaderWrite,
+                                 vk::PipelineStageFlagBits2::eTransfer,
+                                 vk::PipelineStageFlagBits2::eComputeShader,
                                  vk::ImageAspectFlagBits::eColor);
 
     cmd.end();
@@ -185,21 +239,25 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
  * @param dstStageMask
  * @param image_aspectMask
  */
-void HelloTriangleApplication::draw_transition_image_layout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
-                                                            vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
-                                                            vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
+void HelloTriangleApplication::draw_transition_image_layout(vk::Image image,
+                                                            vk::ImageLayout oldLayout,
+                                                            vk::ImageLayout newLayout,
+                                                            vk::AccessFlags2 srcAccessMask,
+                                                            vk::AccessFlags2 dstAccessMask,
+                                                            vk::PipelineStageFlags2 srcStageMask,
+                                                            vk::PipelineStageFlags2 dstStageMask,
                                                             vk::ImageAspectFlags image_aspectMask) {
     vk::ImageMemoryBarrier2 barrier = {
-        .srcStageMask = srcStageMask,
-        .srcAccessMask = srcAccessMask,
-        .dstStageMask = dstStageMask,
-        .dstAccessMask = dstAccessMask,
-        .oldLayout = oldLayout,
-        .newLayout = newLayout,
+        .srcStageMask        = srcStageMask,
+        .srcAccessMask       = srcAccessMask,
+        .dstStageMask        = dstStageMask,
+        .dstAccessMask       = dstAccessMask,
+        .oldLayout           = oldLayout,
+        .newLayout           = newLayout,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = image,
-        .subresourceRange = {.aspectMask = image_aspectMask, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
+        .image               = image,
+        .subresourceRange    = {.aspectMask = image_aspectMask, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
 
     vk::DependencyInfo dependencyInfo = {.dependencyFlags = {}, .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier};
 
@@ -269,22 +327,22 @@ void HelloTriangleApplication::drawFrame() {
 
     // submit command buffer
     vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    const vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1,
-                                    .pWaitSemaphores = &*presentCompleteSemaphore[semaphoreIndex],
-                                    .pWaitDstStageMask = &waitDestinationStageMask,
-                                    .commandBufferCount = 1,
-                                    .pCommandBuffers = &*commandBuffers[currentFrame],
+    const vk::SubmitInfo submitInfo{.waitSemaphoreCount   = 1,
+                                    .pWaitSemaphores      = &*presentCompleteSemaphore[semaphoreIndex],
+                                    .pWaitDstStageMask    = &waitDestinationStageMask,
+                                    .commandBufferCount   = 1,
+                                    .pCommandBuffers      = &*commandBuffers[currentFrame],
                                     .signalSemaphoreCount = 1,
-                                    .pSignalSemaphores = &*renderFinishedSemaphore[imageIndex]};
+                                    .pSignalSemaphores    = &*renderFinishedSemaphore[imageIndex]};
     queue.submit(submitInfo, *inFlightFences[currentFrame]);
 
     //  submitting the result back to the swap chain to have it eventually show up on the screen
     try {
         const vk::PresentInfoKHR presentInfoKHR{.waitSemaphoreCount = 1,
-                                                .pWaitSemaphores = &*renderFinishedSemaphore[imageIndex],
-                                                .swapchainCount = 1,
-                                                .pSwapchains = &*swapChain,
-                                                .pImageIndices = &imageIndex};
+                                                .pWaitSemaphores    = &*renderFinishedSemaphore[imageIndex],
+                                                .swapchainCount     = 1,
+                                                .pSwapchains        = &*swapChain,
+                                                .pImageIndices      = &imageIndex};
         result = queue.presentKHR(presentInfoKHR);
         if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) {
             // need to do this after queueupresentKHR, or semaphores will not work correctly
@@ -303,5 +361,5 @@ void HelloTriangleApplication::drawFrame() {
         }
     }
     semaphoreIndex = (semaphoreIndex + 1) % presentCompleteSemaphore.size();
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    currentFrame   = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

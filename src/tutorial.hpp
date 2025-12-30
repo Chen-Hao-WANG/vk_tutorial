@@ -32,10 +32,10 @@ import vulkan_hpp;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-constexpr uint32_t WIDTH = 800;
-constexpr uint32_t HEIGHT = 600;
-const std::string MODEL_PATH = "../../../../model/viking_room.obj";
-const std::string TEXTURE_PATH = "../../../../textures/viking_room.png";
+constexpr uint32_t WIDTH           = 800;
+constexpr uint32_t HEIGHT          = 600;
+const std::string MODEL_PATH       = "../../../../model/viking_room.obj";
+const std::string TEXTURE_PATH     = "../../../../textures/viking_room.png";
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<char const*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
@@ -47,7 +47,16 @@ constexpr bool enableValidationLayers = true;
 #pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
 constexpr bool enableValidationLayers = false;
 #endif
-
+/**
+ * @brief SubMesh structure to hold information about a subset of a mesh
+ *
+ */
+struct SubMesh {
+    uint32_t indexOffset;
+    uint32_t indexCount;
+    uint32_t maxVertex;
+    bool alphaCut = false;
+};
 /**
  * @brief
  *
@@ -65,6 +74,10 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
     glm::vec3 normal;
+
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
+    }
 
     /**
      * @brief Get the Binding Description object: binding, stride, inputRate
@@ -84,7 +97,17 @@ struct Vertex {
                 vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal))};
     }
 };
-
+namespace std {
+template <>
+struct hash<Vertex> {
+    size_t operator()(Vertex const& vertex) const {
+        size_t h = std::hash<glm::vec3>()(vertex.pos) ^ (std::hash<glm::vec3>()(vertex.color) << 1);
+        h        = (h >> 1) ^ (std::hash<glm::vec2>()(vertex.texCoord) << 1);
+        h        = (h >> 1) ^ (std::hash<glm::vec3>()(vertex.normal) << 1);
+        return h;
+    }
+};
+}  // namespace std
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
@@ -102,28 +125,28 @@ class HelloTriangleApplication {
    private:
     GLFWwindow* window = nullptr;
     vk::raii::Context context;
-    vk::raii::Instance instance = nullptr;
+    vk::raii::Instance instance                     = nullptr;
     vk::raii::DebugUtilsMessengerEXT debugMessenger = nullptr;
-    vk::raii::SurfaceKHR surface = nullptr;
-    vk::raii::PhysicalDevice physicalDevice = nullptr;
-    vk::raii::Device device = nullptr;
-    uint32_t queueIndex = ~0;
-    vk::raii::Queue queue = nullptr;
-    vk::raii::SwapchainKHR swapChain = nullptr;
+    vk::raii::SurfaceKHR surface                    = nullptr;
+    vk::raii::PhysicalDevice physicalDevice         = nullptr;
+    vk::raii::Device device                         = nullptr;
+    uint32_t queueIndex                             = ~0;
+    vk::raii::Queue queue                           = nullptr;
+    vk::raii::SwapchainKHR swapChain                = nullptr;
     std::vector<vk::Image> swapChainImages;
     vk::SurfaceFormatKHR swapChainSurfaceFormat;
     vk::Extent2D swapChainExtent;
     std::vector<vk::raii::ImageView> swapChainImageViews;
     //
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
-    vk::raii::PipelineLayout pipelineLayout = nullptr;
-    vk::raii::Pipeline graphicsPipeline = nullptr;
+    vk::raii::PipelineLayout pipelineLayout           = nullptr;
+    vk::raii::Pipeline graphicsPipeline               = nullptr;
     //
-    vk::raii::CommandPool commandPool = nullptr;
-    vk::raii::Buffer vertexBuffer = nullptr;
+    vk::raii::CommandPool commandPool         = nullptr;
+    vk::raii::Buffer vertexBuffer             = nullptr;
     vk::raii::DeviceMemory vertexBufferMemory = nullptr;
-    vk::raii::Buffer indexBuffer = nullptr;
-    vk::raii::DeviceMemory indexBufferMemory = nullptr;
+    vk::raii::Buffer indexBuffer              = nullptr;
+    vk::raii::DeviceMemory indexBufferMemory  = nullptr;
     // uniform buffer
     std::vector<vk::raii::Buffer> uniformBuffers;
     std::vector<vk::raii::DeviceMemory> uniformBuffersMemory;
@@ -133,7 +156,7 @@ class HelloTriangleApplication {
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     // light buffer
     std::vector<Light> lights;
-    vk::raii::Buffer lightBuffer = nullptr;
+    vk::raii::Buffer lightBuffer             = nullptr;
     vk::raii::DeviceMemory lightBufferMemory = nullptr;
     //
     std::vector<vk::raii::CommandBuffer> commandBuffers;
@@ -143,26 +166,26 @@ class HelloTriangleApplication {
     // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
     // texture image and its memory
-    vk::raii::Image textureImage = nullptr;
+    vk::raii::Image textureImage              = nullptr;
     vk::raii::DeviceMemory textureImageMemory = nullptr;
-    vk::raii::ImageView textureImageView = nullptr;
-    vk::raii::Sampler textureSampler = nullptr;
+    vk::raii::ImageView textureImageView      = nullptr;
+    vk::raii::Sampler textureSampler          = nullptr;
     // depth buffering
-    vk::raii::Image depthImage = nullptr;
+    vk::raii::Image depthImage              = nullptr;
     vk::raii::DeviceMemory depthImageMemory = nullptr;
-    vk::raii::ImageView depthImageView = nullptr;
+    vk::raii::ImageView depthImageView      = nullptr;
     // G-Buffer Normal
-    vk::raii::Image gBufferNormalImage = nullptr;
+    vk::raii::Image gBufferNormalImage              = nullptr;
     vk::raii::DeviceMemory gBufferNormalImageMemory = nullptr;
-    vk::raii::ImageView gBufferNormalImageView = nullptr;
+    vk::raii::ImageView gBufferNormalImageView      = nullptr;
     // G-Buffer Position
-    vk::raii::Image gBufferPositionImage = nullptr;
+    vk::raii::Image gBufferPositionImage              = nullptr;
     vk::raii::DeviceMemory gBufferPositionImageMemory = nullptr;
-    vk::raii::ImageView gBufferPositionImageView = nullptr;
+    vk::raii::ImageView gBufferPositionImageView      = nullptr;
     // G-Buffer alebedo
-    vk::raii::Image gBufferAlbedoImage = nullptr;
+    vk::raii::Image gBufferAlbedoImage              = nullptr;
     vk::raii::DeviceMemory gBufferAlbedoImageMemory = nullptr;
-    vk::raii::ImageView gBufferAlbedoImageView = nullptr;
+    vk::raii::ImageView gBufferAlbedoImageView      = nullptr;
 
     // class member for model
     std::vector<Vertex> vertices;
@@ -170,17 +193,17 @@ class HelloTriangleApplication {
 
     //
     bool framebufferResized = false;
-    uint32_t currentFrame = 0;
+    uint32_t currentFrame   = 0;
     uint32_t semaphoreIndex = 0;
     // compute pipeline
-    vk::raii::Pipeline computePipeline = nullptr;
+    vk::raii::Pipeline computePipeline                       = nullptr;
     vk::raii::DescriptorSetLayout computeDescriptorSetLayout = nullptr;
-    vk::raii::PipelineLayout computePipelineLayout = nullptr;
-    vk::raii::DescriptorSet computeDescriptorSet = nullptr;
+    vk::raii::PipelineLayout computePipelineLayout           = nullptr;
+    vk::raii::DescriptorSet computeDescriptorSet             = nullptr;
     // storage_Image processed by compute shader
-    vk::raii::Image storageImage = nullptr;
+    vk::raii::Image storageImage              = nullptr;
     vk::raii::DeviceMemory storageImageMemory = nullptr;
-    vk::raii::ImageView storageImageView = nullptr;
+    vk::raii::ImageView storageImageView      = nullptr;
     //
     std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName,
                                                         vk::KHRSpirv14ExtensionName,
@@ -234,6 +257,7 @@ class HelloTriangleApplication {
         createIndexBuffer();
         createUniformBuffers();
         createLightBuffer();
+        createAccelerationStructures();
         //
         createDescriptorPool();
         createDescriptorSets();
@@ -278,11 +302,11 @@ class HelloTriangleApplication {
         testCallbackData.pMessage =
             "Validation layer callback test - if you see this, the debug messenger is working "
             "correctly!";
-        instance.submitDebugUtilsMessageEXT(vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo, vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral,
-                                            testCallbackData);
+        instance.submitDebugUtilsMessageEXT(
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo, vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral, testCallbackData);
     }
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app                = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
     void createSurface();
@@ -307,8 +331,13 @@ class HelloTriangleApplication {
     void createCommandBuffers();
     void createSyncObjects();
     void recordCommandBuffer(uint32_t imageIndex);
-    void draw_transition_image_layout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
-                                      vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
+    void draw_transition_image_layout(vk::Image image,
+                                      vk::ImageLayout oldLayout,
+                                      vk::ImageLayout newLayout,
+                                      vk::AccessFlags2 srcAccessMask,
+                                      vk::AccessFlags2 dstAccessMask,
+                                      vk::PipelineStageFlags2 srcStageMask,
+                                      vk::PipelineStageFlags2 dstStageMask,
                                       vk::ImageAspectFlags image_aspectMask);
     // Waiting for the previous frame
     void drawFrame();
@@ -316,7 +345,10 @@ class HelloTriangleApplication {
     void recreateSwapChain();
     void cleanupSwapChain();
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-    void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Buffer& buffer,
+    void createBuffer(vk::DeviceSize size,
+                      vk::BufferUsageFlags usage,
+                      vk::MemoryPropertyFlags properties,
+                      vk::raii::Buffer& buffer,
                       vk::raii::DeviceMemory& bufferMemory);
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
@@ -371,8 +403,10 @@ class HelloTriangleApplication {
 
     std::vector<const char*> getRequiredExtensions();
 
-    static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type,
-                                                          const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
+    static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                          vk::DebugUtilsMessageTypeFlagsEXT type,
+                                                          const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                          void*) {
         // Print all validation messages (errors, warnings, verbose info)
         std::string severityStr;
         switch (severity) {
@@ -455,22 +489,28 @@ class HelloTriangleApplication {
      * @param image
      * @param imageMemory
      */
-    void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage,
-                     vk::MemoryPropertyFlags properties, vk::raii::Image& image, vk::raii::DeviceMemory& imageMemory) {
-        vk::ImageCreateInfo imageInfo{.imageType = vk::ImageType::e2D,
-                                      .format = format,
-                                      .extent = {width, height, 1},
-                                      .mipLevels = 1,
+    void createImage(uint32_t width,
+                     uint32_t height,
+                     vk::Format format,
+                     vk::ImageTiling tiling,
+                     vk::ImageUsageFlags usage,
+                     vk::MemoryPropertyFlags properties,
+                     vk::raii::Image& image,
+                     vk::raii::DeviceMemory& imageMemory) {
+        vk::ImageCreateInfo imageInfo{.imageType   = vk::ImageType::e2D,
+                                      .format      = format,
+                                      .extent      = {width, height, 1},
+                                      .mipLevels   = 1,
                                       .arrayLayers = 1,
-                                      .samples = vk::SampleCountFlagBits::e1,
-                                      .tiling = tiling,
-                                      .usage = usage,
+                                      .samples     = vk::SampleCountFlagBits::e1,
+                                      .tiling      = tiling,
+                                      .usage       = usage,
                                       .sharingMode = vk::SharingMode::eExclusive};
 
         image = vk::raii::Image(device, imageInfo);
 
         vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-        vk::MemoryAllocateInfo allocInfo{.allocationSize = memRequirements.size,
+        vk::MemoryAllocateInfo allocInfo{.allocationSize  = memRequirements.size,
                                          .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)};
         imageMemory = vk::raii::DeviceMemory(device, allocInfo);
         image.bindMemory(*imageMemory, 0);
@@ -511,12 +551,31 @@ class HelloTriangleApplication {
     void createComputeDescriptorSetLayout();
     void createComputePipeline();
     void createComputeDescriptorSets();
-    void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
-                               vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
+    void transitionImageLayout(vk::Image image,
+                               vk::ImageLayout oldLayout,
+                               vk::ImageLayout newLayout,
+                               vk::AccessFlags2 srcAccessMask,
+                               vk::AccessFlags2 dstAccessMask,
+                               vk::PipelineStageFlags2 srcStageMask,
+                               vk::PipelineStageFlags2 dstStageMask,
                                vk::ImageAspectFlags image_aspectMask);
 
     /*Ray tracing*/
     void createAccelerationStructures();
+
+    std::vector<SubMesh> submeshes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::vector<vk::raii::AccelerationStructureKHR> blasHandles;
+    std::vector<vk::raii::Buffer> blasBuffers;
+    std::vector<vk::raii::DeviceMemory> blasMemories;
+
+    vk::raii::AccelerationStructureKHR tlas = nullptr;
+    vk::raii::Buffer tlasBuffer             = nullptr;
+    vk::raii::DeviceMemory tlasMemory       = nullptr;
+
+    vk::raii::Buffer instanceBuffer       = nullptr;
+    vk::raii::DeviceMemory instanceMemory = nullptr;
 
     vk::DeviceAddress getVertAddress(const vk::raii::Buffer& buffer) {
         vk::BufferDeviceAddressInfo vertex_addr_info{.buffer = *buffer};

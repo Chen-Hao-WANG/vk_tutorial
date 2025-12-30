@@ -4,14 +4,21 @@
 Language: Cpp
 BasedOnStyle: Google
 
-# Indentation
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 
-# Practical line length for Vulkan-heavy code.
 ColumnLimit: 150
-
-# Parse modern C++ correctly (affects formatting of some constructs).
 Standard: c++20
-...
+
+# Make braced init-lists (including designated initializers) expand nicely.
+AlignAfterOpenBracket: Align
+BinPackArguments: false
+BinPackParameters: false
+BinPackLongBracedList: false
+
+# Line up ".field = value" entries (align the '=' across consecutive lines).
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false

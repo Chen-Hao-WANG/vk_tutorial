@@ -53,8 +53,8 @@ void HelloTriangleApplication::createAccelerationStructures() {
         vk::AccelerationStructureCreateInfoKHR blasCreateInfo{
             .buffer = *blasBuffers.back(),
             .offset = 0,
-            .size = buildSizes.accelerationStructureSize,
-            .type = vk::AccelerationStructureTypeKHR::eBottomLevel,
+            .size   = buildSizes.accelerationStructureSize,
+            .type   = vk::AccelerationStructureTypeKHR::eBottomLevel,
         };
         blasHandles.push_back(device.createAccelerationStructureKHR(blasCreateInfo));
 
@@ -157,8 +157,8 @@ void HelloTriangleApplication::createAccelerationStructures() {
     tlasBuildInfo.dstAccelerationStructure = *tlas;
 
     // scratch buffer for TLAS build
-    vk::raii::Buffer tlasScratchBuffer       = nullptr;
-    vk::raii::DeviceMemory tlasScratchMemory = nullptr;
+    // vk::raii::Buffer tlasScratchBuffer       = nullptr;
+    // vk::raii::DeviceMemory tlasScratchMemory = nullptr;
     createBuffer(tlasBuildSizes.buildScratchSize,
                  vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
                  vk::MemoryPropertyFlagBits::eDeviceLocal,
@@ -174,4 +174,83 @@ void HelloTriangleApplication::createAccelerationStructures() {
     auto cmd = beginSingleTimeCommands();
     cmd->buildAccelerationStructuresKHR({tlasBuildInfo}, {&tlasRange});
     endSingleTimeCommands(*cmd);
+}
+void HelloTriangleApplication::updateTLAS(const vk::raii::CommandBuffer& cmd) {
+    // A. Calculate Animation (Rotation around Y)
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime      = std::chrono::high_resolution_clock::now();
+    float time            = std::chrono::duration<float>(currentTime - startTime).count();
+
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // Convert GLM (col-major) to Vulkan Transform (row-major 3x4)
+    vk::TransformMatrixKHR transform;
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 4; c++) {
+            transform.matrix[r][c] = model[c][r];
+        }
+    }
+
+    // B. Re-generate Instances with new Transform
+    std::vector<vk::AccelerationStructureInstanceKHR> instances;
+    instances.reserve(blasHandles.size());
+    for (size_t i = 0; i < blasHandles.size(); i++) {
+        vk::AccelerationStructureDeviceAddressInfoKHR addressInfo{.accelerationStructure = *blasHandles[i]};
+        vk::DeviceAddress blasAddress = device.getAccelerationStructureAddressKHR(addressInfo);
+
+        vk::AccelerationStructureInstanceKHR instance{};
+        instance.transform                              = transform;
+        instance.instanceCustomIndex                    = i;
+        instance.mask                                   = 0xFF;
+        instance.instanceShaderBindingTableRecordOffset = 0;
+        instance.flags                                  = static_cast<uint32_t>(vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable);
+        instance.accelerationStructureReference         = blasAddress;
+        instances.push_back(instance);
+    }
+
+    // C. Upload to Buffer
+    // FIX 1: Use 3 arguments. 'instances' vector converts to ArrayProxy automatically.
+    cmd.updateBuffer<vk::AccelerationStructureInstanceKHR>(*instanceBuffer, 0, instances);
+
+    // D. Barrier: Ensure upload finishes before Build reads it
+    vk::MemoryBarrier2 transferBarrier{.srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                                       .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                       .dstStageMask  = vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+                                       .dstAccessMask = vk::AccessFlagBits2::eAccelerationStructureReadKHR};
+    vk::DependencyInfo depInfo{.memoryBarrierCount = 1, .pMemoryBarriers = &transferBarrier};
+    cmd.pipelineBarrier2(depInfo);
+
+    // E. Build TLAS
+    vk::BufferDeviceAddressInfo instanceBufAddrInfo{.buffer = *instanceBuffer};
+    vk::DeviceAddress instanceAddr = device.getBufferAddressKHR(instanceBufAddrInfo);
+
+    vk::AccelerationStructureGeometryInstancesDataKHR instancesData{.arrayOfPointers = vk::False, .data = instanceAddr};
+    vk::AccelerationStructureGeometryKHR tlasGeometry{.geometryType = vk::GeometryTypeKHR::eInstances, .geometry = instancesData};
+
+    // FIX 2: Construct DeviceOrHostAddressKHR explicitly
+    vk::DeviceAddress scratchAddr = device.getBufferAddressKHR({.buffer = *tlasScratchBuffer});
+
+    vk::AccelerationStructureBuildGeometryInfoKHR tlasBuildInfo{
+        .type                     = vk::AccelerationStructureTypeKHR::eTopLevel,
+        .mode                     = vk::BuildAccelerationStructureModeKHR::eBuild,
+        .dstAccelerationStructure = *tlas,
+        .geometryCount            = 1,
+        .pGeometries              = &tlasGeometry,
+        .scratchData              = vk::DeviceOrHostAddressKHR(scratchAddr)  // <--- Explicit Constructor
+    };
+
+    vk::AccelerationStructureBuildRangeInfoKHR tlasRange{
+        .primitiveCount = static_cast<uint32_t>(instances.size()), .primitiveOffset = 0, .firstVertex = 0, .transformOffset = 0};
+    const vk::AccelerationStructureBuildRangeInfoKHR* pRange = &tlasRange;
+
+    // FIX 3: Remove '1' (count) and use brackets {} to create ArrayProxy
+    cmd.buildAccelerationStructuresKHR(tlasBuildInfo, pRange);
+
+    // F. Barrier: Ensure Build finishes before Compute Shader reads it
+    vk::MemoryBarrier2 buildBarrier{.srcStageMask  = vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+                                    .srcAccessMask = vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+                                    .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                    .dstAccessMask = vk::AccessFlagBits2::eShaderRead};
+    vk::DependencyInfo buildDepInfo{.memoryBarrierCount = 1, .pMemoryBarriers = &buildBarrier};
+    cmd.pipelineBarrier2(buildDepInfo);
 }

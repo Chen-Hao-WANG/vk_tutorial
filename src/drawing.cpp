@@ -38,7 +38,7 @@ void HelloTriangleApplication::createCommandBuffers() {
 void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     auto& cmd = commandBuffers[currentFrame];
     cmd.begin({});
-
+    updateTLAS(cmd);
     // --- PHASE 1: Prepare Image Layouts for Rasterization ---
     // Transition Swapchain image to Color Attachment layout
     draw_transition_image_layout(*gBufferAlbedoImage,

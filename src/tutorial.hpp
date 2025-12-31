@@ -570,9 +570,13 @@ class HelloTriangleApplication {
     std::vector<vk::raii::Buffer> blasBuffers;
     std::vector<vk::raii::DeviceMemory> blasMemories;
 
-    vk::raii::AccelerationStructureKHR tlas = nullptr;
-    vk::raii::Buffer tlasBuffer             = nullptr;
-    vk::raii::DeviceMemory tlasMemory       = nullptr;
+    vk::raii::AccelerationStructureKHR tlas  = nullptr;
+    vk::raii::Buffer tlasBuffer              = nullptr;
+    vk::raii::DeviceMemory tlasMemory        = nullptr;
+    vk::raii::Buffer tlasScratchBuffer       = nullptr;
+    vk::raii::DeviceMemory tlasScratchMemory = nullptr;
+
+    void updateTLAS(const vk::raii::CommandBuffer& commandBuffer);
 
     vk::raii::Buffer instanceBuffer       = nullptr;
     vk::raii::DeviceMemory instanceMemory = nullptr;

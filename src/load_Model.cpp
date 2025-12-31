@@ -49,7 +49,7 @@ void HelloTriangleApplication::loadModel() {
         submesh.indexOffset = shapeStartIndex;
         submesh.indexCount  = globalIndexOffset - shapeStartIndex;
         submesh.maxVertex   = localMaxV;
-        submesh.alphaCut    = (shape.name.find("nettle_plant") != std::string::npos);  // 範例
+        submesh.alphaCut    = (shape.name.find("nettle_plant") != std::string::npos);
 
         submeshes.push_back(submesh);
     }

@@ -19,36 +19,36 @@ void HelloTriangleApplication::createGraphicsPipeline() {
 
     // get two vertex input descriptions from Vertex struct
     // then create vertex input state info
-    auto bindingDescription = Vertex::getBindingDescription();
+    auto bindingDescription    = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
-    vk::PipelineVertexInputStateCreateInfo vertexInputInfo{.vertexBindingDescriptionCount = 1,
-                                                           .pVertexBindingDescriptions = &bindingDescription,
+    vk::PipelineVertexInputStateCreateInfo vertexInputInfo{.vertexBindingDescriptionCount   = 1,
+                                                           .pVertexBindingDescriptions      = &bindingDescription,
                                                            .vertexAttributeDescriptionCount = attributeDescriptions.size(),
-                                                           .pVertexAttributeDescriptions = attributeDescriptions.data()};
+                                                           .pVertexAttributeDescriptions    = attributeDescriptions.data()};
     // Input assembly
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly{.topology = vk::PrimitiveTopology::eTriangleList};
     // Viewport and scissor
     vk::PipelineViewportStateCreateInfo viewportState{.viewportCount = 1, .scissorCount = 1};
     // Rasterizer
-    vk::PipelineRasterizationStateCreateInfo rasterizer{.depthClampEnable = vk::False,
+    vk::PipelineRasterizationStateCreateInfo rasterizer{.depthClampEnable        = vk::False,
                                                         .rasterizerDiscardEnable = vk::False,
-                                                        .polygonMode = vk::PolygonMode::eFill,
-                                                        .cullMode = vk::CullModeFlagBits::eBack,
-                                                        .frontFace = vk::FrontFace::eCounterClockwise,
-                                                        .depthBiasEnable = vk::False,
-                                                        .depthBiasSlopeFactor = 1.0f,
-                                                        .lineWidth = 1.0f};
+                                                        .polygonMode             = vk::PolygonMode::eFill,
+                                                        .cullMode                = vk::CullModeFlagBits::eNone,
+                                                        .frontFace               = vk::FrontFace::eCounterClockwise,
+                                                        .depthBiasEnable         = vk::False,
+                                                        .depthBiasSlopeFactor    = 1.0f,
+                                                        .lineWidth               = 1.0f};
     // Multisampling
     vk::PipelineMultisampleStateCreateInfo multisampling{.rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False};
     // Depth and stencil testing
-    vk::PipelineDepthStencilStateCreateInfo depthStencil{.depthTestEnable = vk::True,
-                                                         .depthWriteEnable = vk::True,
-                                                         .depthCompareOp = vk::CompareOp::eLess,
+    vk::PipelineDepthStencilStateCreateInfo depthStencil{.depthTestEnable       = vk::True,
+                                                         .depthWriteEnable      = vk::True,
+                                                         .depthCompareOp        = vk::CompareOp::eLess,
                                                          .depthBoundsTestEnable = vk::False,
-                                                         .stencilTestEnable = vk::False};
+                                                         .stencilTestEnable     = vk::False};
 
     // Color blending for three attachments
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment{.blendEnable = vk::False,
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment{.blendEnable    = vk::False,
                                                                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                                                                                  vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
     std::vector<vk::PipelineColorBlendAttachmentState> blendAttachments = {colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
@@ -58,7 +58,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     // Dynamic state
     std::vector dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
     vk::PipelineDynamicStateCreateInfo dynamicState{.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-                                                    .pDynamicStates = dynamicStates.data()};
+                                                    .pDynamicStates    = dynamicStates.data()};
     // add descriptorSetLayout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0};
     // pipeline layout
@@ -69,19 +69,19 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{
         .colorAttachmentCount = 3, .pColorAttachmentFormats = colorFormats, .depthAttachmentFormat = depthFormat};
 
-    vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext = &pipelineRenderingCreateInfo,  // add pNext to link to Pipeline Rendering Create Info
-                                                .stageCount = 2,                        // vertex and fragment shaders, so two stages
-                                                .pStages = shaderStages,
-                                                .pVertexInputState = &vertexInputInfo,
+    vk::GraphicsPipelineCreateInfo pipelineInfo{.pNext      = &pipelineRenderingCreateInfo,  // add pNext to link to Pipeline Rendering Create Info
+                                                .stageCount = 2,                             // vertex and fragment shaders, so two stages
+                                                .pStages    = shaderStages,
+                                                .pVertexInputState   = &vertexInputInfo,
                                                 .pInputAssemblyState = &inputAssembly,
-                                                .pViewportState = &viewportState,
+                                                .pViewportState      = &viewportState,
                                                 .pRasterizationState = &rasterizer,
-                                                .pMultisampleState = &multisampling,
-                                                .pDepthStencilState = &depthStencil,
-                                                .pColorBlendState = &colorBlending,
-                                                .pDynamicState = &dynamicState,
-                                                .layout = pipelineLayout,
-                                                .renderPass = nullptr};
+                                                .pMultisampleState   = &multisampling,
+                                                .pDepthStencilState  = &depthStencil,
+                                                .pColorBlendState    = &colorBlending,
+                                                .pDynamicState       = &dynamicState,
+                                                .layout              = pipelineLayout,
+                                                .renderPass          = nullptr};
     graphicsPipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);
 }
 void HelloTriangleApplication::createComputePipeline() {

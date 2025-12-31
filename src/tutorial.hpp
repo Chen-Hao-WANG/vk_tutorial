@@ -204,6 +204,8 @@ class HelloTriangleApplication {
     vk::raii::Image storageImage              = nullptr;
     vk::raii::DeviceMemory storageImageMemory = nullptr;
     vk::raii::ImageView storageImageView      = nullptr;
+    // maintain the time and matrix for animation
+    glm::mat4 currentModelMatrix;
     //
     std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName,
                                                         vk::KHRSpirv14ExtensionName,

@@ -55,8 +55,7 @@ VSOutput vertMain(VSInput input)
 Sampler2D texture;
 
 [shader("fragment")]
-PSOutput fragMain(VSOutput vertIn) : SV_TARGET
-{
+PSOutput fragMain(VSOutput vertIn, bool isFrontFace : SV_IsFrontFace) : SV_TARGET{
     PSOutput output;
     // target 0: color
     float3 albedo = vertIn.fragColor * texture.Sample(vertIn.fragTexCoord).rgb;
@@ -64,6 +63,12 @@ PSOutput fragMain(VSOutput vertIn) : SV_TARGET
     // target 1: world position
     output.worldPos = float4(vertIn.worldPos, 1.0);
     // target 2: normal
-    output.normal = float4(vertIn.fragNormal, 1.0);
+    float3 N = normalize(vertIn.fragNormal);
+    if (!isFrontFace) 
+    {
+        N = -N;
+    }
+    output.normal = float4(N, 1.0);
+        
     return output;
 }

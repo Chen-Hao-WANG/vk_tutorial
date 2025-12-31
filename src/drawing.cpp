@@ -307,6 +307,13 @@ void HelloTriangleApplication::drawFrame() {
     7. advance to the next frame
     */
     while (vk::Result::eTimeout == device.waitForFences(*inFlightFences[currentFrame], vk::True, UINT64_MAX));
+    // 1. Calculate Time & Matrix ONCE
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime      = std::chrono::high_resolution_clock::now();
+    float time            = std::chrono::duration<float>(currentTime - startTime).count();
+
+    // Store it in the class member
+    currentModelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     // wait until the previous frame is finished
     auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore[semaphoreIndex], nullptr);
 

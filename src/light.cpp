@@ -24,17 +24,17 @@ void HelloTriangleApplication::createLightBuffer() {
         light.color    = glm::vec4(colorDist(rndEngine), colorDist(rndEngine), colorDist(rndEngine), 0.0f);
     }
     // create buffer
-    vk::DeviceSize lightBufferSize = sizeof(Light) * lights.size();
+    lightBufferResource.size = sizeof(Light) * lights.size();
 
-    createBuffer(lightBufferSize,
+    createBuffer(lightBufferResource.size,
                  vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                 lightBuffer,
-                 lightBufferMemory);
+                 lightBufferResource.buffer,
+                 lightBufferResource.memory);
 
     /*zero copy*/
-    void* data = lightBufferMemory.mapMemory(0, lightBufferSize);
-    memcpy(data, lights.data(), static_cast<size_t>(lightBufferSize));
-    lightBufferMemory.unmapMemory();
+    void* data = lightBufferResource.memory.mapMemory(0, lightBufferResource.size);
+    memcpy(data, lights.data(), static_cast<size_t>(lightBufferResource.size));
+    lightBufferResource.memory.unmapMemory();
     std::cout << "[Info] Light Buffer created with APU Optimization (" << lights.size() << " lights)" << std::endl;
 }

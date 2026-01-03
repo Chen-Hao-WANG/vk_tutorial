@@ -47,6 +47,25 @@ constexpr bool enableValidationLayers = true;
 #pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
 constexpr bool enableValidationLayers = false;
 #endif
+
+struct BufferResource {
+    vk::raii::Buffer buffer       = nullptr;
+    vk::raii::DeviceMemory memory = nullptr;
+    vk::DeviceSize size           = 0;
+    void* mapped                  = nullptr;  // for vulkan persistent mapped memory
+};
+/**
+ * @brief Texture structure to hold texture image, its memory, image view and sampler
+ *
+ */
+struct Texture {
+    // texture image and its memory
+    vk::raii::Image textureImage              = nullptr;
+    vk::raii::DeviceMemory textureImageMemory = nullptr;
+    vk::raii::ImageView textureImageView      = nullptr;
+    vk::raii::Sampler textureSampler          = nullptr;
+};
+
 /**
  * @brief SubMesh structure to hold information about a subset of a mesh
  *
@@ -156,8 +175,9 @@ class HelloTriangleApplication {
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     // light buffer
     std::vector<Light> lights;
-    vk::raii::Buffer lightBuffer             = nullptr;
-    vk::raii::DeviceMemory lightBufferMemory = nullptr;
+    BufferResource lightBufferResource;
+    // vk::raii::Buffer lightBuffer             = nullptr;
+    // vk::raii::DeviceMemory lightBufferMemory = nullptr;
     //
     std::vector<vk::raii::CommandBuffer> commandBuffers;
     //
@@ -165,11 +185,8 @@ class HelloTriangleApplication {
     std::vector<vk::raii::Semaphore> renderFinishedSemaphore;
     // 2 fences for GPU and CPU can work on their own task at the same time
     std::vector<vk::raii::Fence> inFlightFences;
-    // texture image and its memory
-    vk::raii::Image textureImage              = nullptr;
-    vk::raii::DeviceMemory textureImageMemory = nullptr;
-    vk::raii::ImageView textureImageView      = nullptr;
-    vk::raii::Sampler textureSampler          = nullptr;
+    // texture
+    Texture viking_room;
     // depth buffering
     vk::raii::Image depthImage              = nullptr;
     vk::raii::DeviceMemory depthImageMemory = nullptr;

@@ -14,8 +14,7 @@ void HelloTriangleApplication::createTextureImage() {
     5. transition image layout for shader reading
     */
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels =
-        stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
@@ -28,10 +27,11 @@ void HelloTriangleApplication::createTextureImage() {
     vk::raii::DeviceMemory stagingBufferMemory({});
     // this buffer should be in host visible memory so that we can map it as a transfer source to
     // copy to the image
-    createBuffer(
-        imageSize, vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-        stagingBuffer, stagingBufferMemory);
+    createBuffer(imageSize,
+                 vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 stagingBuffer,
+                 stagingBufferMemory);
 
     // copy pixel data "from image" to "staging buffer"
     void* data = stagingBufferMemory.mapMemory(0, imageSize);
@@ -43,18 +43,20 @@ void HelloTriangleApplication::createTextureImage() {
     // better to access pixel value(now in the staging buffer) by using image object(Pixels within
     // an image object are known as texels)
 
-    createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+    createImage(texWidth,
+                texHeight,
+                vk::Format::eR8G8B8A8Srgb,
+                vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-                vk::MemoryPropertyFlagBits::eDeviceLocal, textureImage, textureImageMemory);
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                viking_room.textureImage,
+                viking_room.textureImageMemory);
 
     //  The last thing we did there was creating the texture image object, but it is still empty!
     // Now we need to copy the pixel data from the staging buffer to the image object.
-    transitionImageLayout(textureImage, vk::ImageLayout::eUndefined,
-                          vk::ImageLayout::eTransferDstOptimal);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth),
-                      static_cast<uint32_t>(texHeight));
-    transitionImageLayout(textureImage, vk::ImageLayout::eTransferDstOptimal,
-                          vk::ImageLayout::eShaderReadOnlyOptimal);
+    transitionImageLayout(viking_room.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+    copyBufferToImage(stagingBuffer, viking_room.textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    transitionImageLayout(viking_room.textureImage, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 /**
  * @brief transition image layout helper function
@@ -63,37 +65,32 @@ void HelloTriangleApplication::createTextureImage() {
  * @param oldLayout
  * @param newLayout
  */
-void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image& image,
-                                                     vk::ImageLayout oldLayout,
-                                                     vk::ImageLayout newLayout) {
-    vk::AccessFlags2 srcAccessMask = {};
-    vk::AccessFlags2 dstAccessMask = {};
+void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
+    vk::AccessFlags2 srcAccessMask       = {};
+    vk::AccessFlags2 dstAccessMask       = {};
     vk::PipelineStageFlags2 srcStageMask = {};
     vk::PipelineStageFlags2 dstStageMask = {};
-    vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor;
+    vk::ImageAspectFlags aspectMask      = vk::ImageAspectFlagBits::eColor;
 
-    if (oldLayout == vk::ImageLayout::eUndefined &&
-        newLayout == vk::ImageLayout::eTransferDstOptimal) {
+    if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
         srcAccessMask = vk::AccessFlagBits2::eNone;
         dstAccessMask = vk::AccessFlagBits2::eTransferWrite;
-        srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
-        dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-    } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal &&
-               newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+        srcStageMask  = vk::PipelineStageFlagBits2::eTopOfPipe;
+        dstStageMask  = vk::PipelineStageFlagBits2::eTransfer;
+    } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
         dstAccessMask = vk::AccessFlagBits2::eShaderRead;
-        srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
-        dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
+        srcStageMask  = vk::PipelineStageFlagBits2::eTransfer;
+        dstStageMask  = vk::PipelineStageFlagBits2::eFragmentShader;
     } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
         srcAccessMask = vk::AccessFlagBits2::eNone;
         dstAccessMask = vk::AccessFlagBits2::eShaderWrite;
-        srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe;
-        dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+        srcStageMask  = vk::PipelineStageFlagBits2::eTopOfPipe;
+        dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader;
     } else {
         throw std::invalid_argument("unsupported layout transition!");
     }
-    transitionImageLayout(*image, oldLayout, newLayout, srcAccessMask, dstAccessMask, srcStageMask,
-                          dstStageMask, aspectMask);
+    transitionImageLayout(*image, oldLayout, newLayout, srcAccessMask, dstAccessMask, srcStageMask, dstStageMask, aspectMask);
 }
 
 /**
@@ -104,19 +101,17 @@ void HelloTriangleApplication::transitionImageLayout(const vk::raii::Image& imag
  * @param width
  * @param height
  */
-void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer& buffer,
-                                                 vk::raii::Image& image, uint32_t width,
-                                                 uint32_t height) {
+void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height) {
     /*before we can use the image as a texture in shader, we need to copy the pixel data from the
      * staging buffer to the image object*/
     std::unique_ptr<vk::raii::CommandBuffer> commandBuffer = beginSingleTimeCommands();
 
-    vk::BufferImageCopy region{.bufferOffset = 0,
-                               .bufferRowLength = 0,
+    vk::BufferImageCopy region{.bufferOffset      = 0,
+                               .bufferRowLength   = 0,
                                .bufferImageHeight = 0,
-                               .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
-                               .imageOffset = {0, 0, 0},
-                               .imageExtent = {width, height, 1}};
+                               .imageSubresource  = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                               .imageOffset       = {0, 0, 0},
+                               .imageExtent       = {width, height, 1}};
 
     commandBuffer->copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, {region});
 
@@ -128,8 +123,7 @@ void HelloTriangleApplication::copyBufferToImage(const vk::raii::Buffer& buffer,
  * call createImageView helper function
  */
 void HelloTriangleApplication::createTextureImageView() {
-    textureImageView =
-        createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
+    viking_room.textureImageView = createImageView(viking_room.textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
 
 /**
@@ -145,15 +139,15 @@ void HelloTriangleApplication::createTextureSampler() {
     */
 
     vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
-    vk::SamplerCreateInfo samplerInfo{.magFilter = vk::Filter::eLinear,
-                                      .minFilter = vk::Filter::eLinear,
-                                      .mipmapMode = vk::SamplerMipmapMode::eLinear,
-                                      .addressModeU = vk::SamplerAddressMode::eRepeat,
-                                      .addressModeV = vk::SamplerAddressMode::eRepeat,
-                                      .addressModeW = vk::SamplerAddressMode::eRepeat,
+    vk::SamplerCreateInfo samplerInfo{.magFilter        = vk::Filter::eLinear,
+                                      .minFilter        = vk::Filter::eLinear,
+                                      .mipmapMode       = vk::SamplerMipmapMode::eLinear,
+                                      .addressModeU     = vk::SamplerAddressMode::eRepeat,
+                                      .addressModeV     = vk::SamplerAddressMode::eRepeat,
+                                      .addressModeW     = vk::SamplerAddressMode::eRepeat,
                                       .anisotropyEnable = vk::True,
-                                      .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-                                      .compareEnable = vk::False,
-                                      .compareOp = vk::CompareOp::eAlways};
-    textureSampler = vk::raii::Sampler(device, samplerInfo);
+                                      .maxAnisotropy    = properties.limits.maxSamplerAnisotropy,
+                                      .compareEnable    = vk::False,
+                                      .compareOp        = vk::CompareOp::eAlways};
+    viking_room.textureSampler = vk::raii::Sampler(device, samplerInfo);
 }

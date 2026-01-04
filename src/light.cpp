@@ -8,8 +8,8 @@ void HelloTriangleApplication::createLightBuffer() {
 
     std::default_random_engine rndEngine(std::random_device{}());
 
-    // Spread X and Y out wider (e.g., -3 to 3)
-    std::uniform_real_distribution<float> posDistXY(-3.0f, 3.0f);
+    // Spread X and Y out wider
+    std::uniform_real_distribution<float> posDistXY(-1.8f, 1.8f);  // the Cornell Box ([-2.0, 2.0])
 
     // Keep Z positive so lights are ABOVE the floor (e.g., 1.0 to 3.0)
     std::uniform_real_distribution<float> posDistZ(1.0f, 3.0f);

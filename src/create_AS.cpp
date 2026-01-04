@@ -176,11 +176,13 @@ void HelloTriangleApplication::createAccelerationStructures() {
     endSingleTimeCommands(*cmd);
 }
 void HelloTriangleApplication::updateTLAS(const vk::raii::CommandBuffer& cmd) {
-    glm::mat4 staticModel = glm::mat4(1.0f);
+    glm::mat4 spin        = currentModelMatrix;
+    glm::mat4 standUp     = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 bunnyMatrix = spin * standUp;
+    glm::mat4 wallMatrix  = glm::mat4(1.0f);
+
     std::vector<vk::AccelerationStructureInstanceKHR> instances;
     instances.reserve(blasHandles.size());
-    // Convert GLM (col-major) to Vulkan Transform (row-major 3x4)
-    vk::TransformMatrixKHR transform;
 
     // B. Re-generate Instances with new Transform
 
@@ -188,7 +190,10 @@ void HelloTriangleApplication::updateTLAS(const vk::raii::CommandBuffer& cmd) {
         vk::AccelerationStructureDeviceAddressInfoKHR addressInfo{.accelerationStructure = *blasHandles[i]};
         vk::DeviceAddress blasAddress = device.getAccelerationStructureAddressKHR(addressInfo);
 
-        glm::mat4 selectedModel = (i == 0) ? currentModelMatrix : staticModel;
+        // [FIX] Use same logic: Last one is Box, others are Bunny
+        bool isCornellBox       = (i == blasHandles.size() - 1);
+        glm::mat4 selectedModel = isCornellBox ? wallMatrix : bunnyMatrix;
+
         vk::TransformMatrixKHR transform;
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 4; c++) {

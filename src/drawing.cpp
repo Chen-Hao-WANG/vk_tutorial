@@ -121,24 +121,28 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     //
     // Bind Graphics Descriptor Set (Set 0: MVP matrices)
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
-    glm::mat4 spinMatrix     = currentModelMatrix;
-    glm::mat4 identityMatrix = glm::mat4(1.0f);
+    glm::mat4 spin = currentModelMatrix;
+    // Rotate -90 degrees on X to make Y-Up Bunny stand in Z-Up World
+    glm::mat4 standUp     = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 bunnyMatrix = spin * standUp;
+    glm::mat4 wallMatrix  = glm::mat4(1.0f);
 
     for (size_t i = 0; i < submeshes.size(); i++) {
         MeshPushConstants constants;
 
-        // submeshes[0] is the bunny (spin), others are walls (static)
-        if (i == 0) {
-            constants.modelMatrix = spinMatrix;
+        // The Cornell Box is the LAST submesh (added in load_Model.cpp)
+        // Everything before it is part of the Bunny
+        bool isCornellBox = (i == submeshes.size() - 1);
+
+        if (!isCornellBox) {
+            constants.modelMatrix = bunnyMatrix;  // All bunny parts spin
         } else {
-            constants.modelMatrix = identityMatrix;
+            constants.modelMatrix = wallMatrix;  // Box stays static
         }
 
         cmd.pushConstants<MeshPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, constants);
-
         cmd.drawIndexed(submeshes[i].indexCount, 1, submeshes[i].indexOffset, 0, 0);
     }
-    cmd.drawIndexed((uint32_t)indices.size(), 1, 0, 0, 0);
     cmd.endRendering();
     // --- PHASE 3: Synchronize and Transition G-Buffers for Compute Read ---
     // Transition Normal G-Buffer

@@ -28,7 +28,7 @@ void HelloTriangleApplication::createUniformBuffers() {
 void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
     UniformBufferObject ubo{};
 
-    ubo.model = currentModelMatrix;
+    // ubo.model = currentModelMatrix;
 
     ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj =

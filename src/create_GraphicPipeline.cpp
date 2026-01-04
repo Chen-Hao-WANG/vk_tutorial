@@ -16,7 +16,8 @@ void HelloTriangleApplication::createGraphicsPipeline() {
         vk::Format::eR32G32B32A32Sfloat,  // 1: Position
         vk::Format::eR32G32B32A32Sfloat   // 2: Normal
     };
-
+    // push constant range
+    vk::PushConstantRange pushConstantRange{.stageFlags = vk::ShaderStageFlagBits::eVertex, .offset = 0, .size = sizeof(MeshPushConstants)};
     // get two vertex input descriptions from Vertex struct
     // then create vertex input state info
     auto bindingDescription    = Vertex::getBindingDescription();
@@ -60,7 +61,8 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     vk::PipelineDynamicStateCreateInfo dynamicState{.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
                                                     .pDynamicStates    = dynamicStates.data()};
     // add descriptorSetLayout
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0};
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{
+        .setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 1, .pPushConstantRanges = &pushConstantRange};
     // pipeline layout
     pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
     // add depth format

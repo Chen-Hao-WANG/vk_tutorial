@@ -13,15 +13,23 @@ void HelloTriangleApplication::createTextureImage() {
     4. copy pixel data from staging buffer to image object
     5. transition image layout for shader reading
     */
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    /*
+     int texWidth, texHeight, texChannels;
+     stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
+     if (!pixels) {
+         throw std::runtime_error("failed to load texture image!");
+     }
 
-    vk::DeviceSize imageSize = texWidth * texHeight * 4;
+     vk::DeviceSize imageSize = texWidth * texHeight * 4;
+    */
 
+    int texWidth  = 1;
+    int texHeight = 1;
+    // 4 bytes: R=255, G=255, B=255, A=255
+    unsigned char pixels[] = {255, 255, 255, 255};
+
+    vk::DeviceSize imageSize = 4;  // 1 pixel * 4 bytes
     // create staging buffer in host visible memory
     vk::raii::Buffer stagingBuffer({});
     vk::raii::DeviceMemory stagingBufferMemory({});
@@ -38,7 +46,7 @@ void HelloTriangleApplication::createTextureImage() {
     memcpy(data, pixels, imageSize);
     stagingBufferMemory.unmapMemory();
     // free image memory loaded by stb_image
-    stbi_image_free(pixels);
+    // stbi_image_free(pixels);
 
     // better to access pixel value(now in the staging buffer) by using image object(Pixels within
     // an image object are known as texels)

@@ -128,9 +128,11 @@ struct hash<Vertex> {
 };
 }  // namespace std
 struct UniformBufferObject {
-    glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+};
+struct MeshPushConstants {
+    glm::mat4 modelMatrix;
 };
 class HelloTriangleApplication {
    public:

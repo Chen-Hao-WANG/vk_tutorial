@@ -1,4 +1,9 @@
 
+struct PushConstants{
+    float4x4 modelMatrix;
+}
+[[vk::push_constant]]
+PushConstants pushConstant;
 struct VSInput
 {
     float3 inPosition;
@@ -9,7 +14,6 @@ struct VSInput
 
 struct UniformBuffer
 {
-    float4x4 model;
     float4x4 view;
     float4x4 proj;
 };
@@ -38,14 +42,14 @@ VSOutput vertMain(VSInput input)
 {
     VSOutput output;
     // world position
-    float4 worldPos = mul(ubo.model, float4(input.inPosition, 1.0));
+    float4 worldPos = mul(pushConstant.modelMatrix, float4(input.inPosition, 1.0));
     output.worldPos = worldPos.xyz;
 
     // clip space position
     output.svPosition = mul(ubo.proj, mul(ubo.view, worldPos));
     
     // normal in world space
-    output.fragNormal = mul((float3x3)ubo.model, input.inNormal);
+    output.fragNormal = mul((float3x3)pushConstant.modelMatrix, input.inNormal);
 
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;

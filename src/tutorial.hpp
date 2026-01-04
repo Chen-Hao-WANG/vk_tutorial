@@ -34,7 +34,7 @@ import vulkan_hpp;
 
 constexpr uint32_t WIDTH           = 800;
 constexpr uint32_t HEIGHT          = 600;
-const std::string MODEL_PATH       = "../../../../model/viking_room.obj";
+const std::string MODEL_PATH       = "../../../../model/bunny.obj";
 const std::string TEXTURE_PATH     = "../../../../textures/viking_room.png";
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -609,5 +609,31 @@ class HelloTriangleApplication {
     vk::DeviceAddress getIndexAddr(const vk::raii::Buffer& buffer) {
         vk::BufferDeviceAddressInfo index_addr_info{.buffer = *buffer};
         return device.getBufferAddressKHR(index_addr_info);
+    }
+    void addQuad(std::vector<Vertex>& vertices,
+                 std::vector<uint32_t>& indices,
+                 glm::vec3 p1,
+                 glm::vec3 p2,
+                 glm::vec3 p3,
+                 glm::vec3 p4,
+                 glm::vec3 color,
+                 uint32_t& indexOffset) {
+        // p1-p2
+        // |  |
+        // p4-p3
+        glm::vec3 normal = glm::normalize(glm::cross(p2 - p1, p4 - p1));
+
+        vertices.push_back({p1, color, {0.0f, 0.0f}, normal});  // TL
+        vertices.push_back({p2, color, {1.0f, 0.0f}, normal});  // TR
+        vertices.push_back({p3, color, {1.0f, 1.0f}, normal});  // BR
+        vertices.push_back({p4, color, {0.0f, 1.0f}, normal});  // BL
+
+        indices.push_back(indexOffset + 0);
+        indices.push_back(indexOffset + 1);
+        indices.push_back(indexOffset + 2);
+        indices.push_back(indexOffset + 2);
+        indices.push_back(indexOffset + 3);
+        indices.push_back(indexOffset + 0);
+        indexOffset += 4;
     }
 };

@@ -78,29 +78,3 @@ void HelloTriangleApplication::loadModel() {
     boxMesh.maxVertex   = vertices.size() - 1;
     submeshes.push_back(boxMesh);
 }
-void addQuad(std::vector<Vertex>& vertices,
-             std::vector<uint32_t>& indices,
-             glm::vec3 p1,
-             glm::vec3 p2,
-             glm::vec3 p3,
-             glm::vec3 p4,
-             glm::vec3 color,
-             uint32_t& indexOffset) {
-    // p1-p2
-    // |  |
-    // p4-p3
-    glm::vec3 normal = glm::normalize(glm::cross(p2 - p1, p4 - p1));
-
-    vertices.push_back({p1, color, {0.0f, 0.0f}, normal});  // TL
-    vertices.push_back({p2, color, {1.0f, 0.0f}, normal});  // TR
-    vertices.push_back({p3, color, {1.0f, 1.0f}, normal});  // BR
-    vertices.push_back({p4, color, {0.0f, 1.0f}, normal});  // BL
-
-    indices.push_back(indexOffset + 0);
-    indices.push_back(indexOffset + 1);
-    indices.push_back(indexOffset + 2);
-    indices.push_back(indexOffset + 2);
-    indices.push_back(indexOffset + 3);
-    indices.push_back(indexOffset + 0);
-    indexOffset += 4;
-}

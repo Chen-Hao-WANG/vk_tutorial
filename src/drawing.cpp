@@ -121,7 +121,23 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     //
     // Bind Graphics Descriptor Set (Set 0: MVP matrices)
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSets[currentFrame], nullptr);
+    glm::mat4 spinMatrix     = currentModelMatrix;
+    glm::mat4 identityMatrix = glm::mat4(1.0f);
 
+    for (size_t i = 0; i < submeshes.size(); i++) {
+        MeshPushConstants constants;
+
+        // submeshes[0] is the bunny (spin), others are walls (static)
+        if (i == 0) {
+            constants.modelMatrix = spinMatrix;
+        } else {
+            constants.modelMatrix = identityMatrix;
+        }
+
+        cmd.pushConstants<MeshPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, constants);
+
+        cmd.drawIndexed(submeshes[i].indexCount, 1, submeshes[i].indexOffset, 0, 0);
+    }
     cmd.drawIndexed((uint32_t)indices.size(), 1, 0, 0, 0);
     cmd.endRendering();
     // --- PHASE 3: Synchronize and Transition G-Buffers for Compute Read ---
@@ -313,25 +329,8 @@ void HelloTriangleApplication::drawFrame() {
     float time            = std::chrono::duration<float>(currentTime - startTime).count();
 
     // Store it in the class member
-    currentModelMatrix       = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 identityMatrix = glm::mat4(1.0f);
+    currentModelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-    for (size_t i = 0; i < submeshes.size(); i++) {
-        MeshPushConstants constants;
-
-        //  submeshes[0] is the bunny that needs to spin, others are walls that stay still
-        if (i == 0) {
-            constants.modelMatrix = spinMatrix;  //
-        } else {
-            constants.modelMatrix = identityMatrix;  //
-        }
-
-        //
-        cmd.pushConstants<MeshPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, constants);
-
-        //
-        cmd.drawIndexed(submeshes[i].indexCount, 1, submeshes[i].indexOffset, 0, 0);
-    }
     // wait until the previous frame is finished
     auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore[semaphoreIndex], nullptr);
 

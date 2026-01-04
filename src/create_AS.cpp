@@ -176,24 +176,19 @@ void HelloTriangleApplication::createAccelerationStructures() {
     endSingleTimeCommands(*cmd);
 }
 void HelloTriangleApplication::updateTLAS(const vk::raii::CommandBuffer& cmd) {
-    glm::mat4 model       = currentModelMatrix;
     glm::mat4 staticModel = glm::mat4(1.0f);
-    // Convert GLM (col-major) to Vulkan Transform (row-major 3x4)
-    vk::TransformMatrixKHR transform;
-    for (int r = 0; r < 3; r++) {
-        for (int c = 0; c < 4; c++) {
-            transform.matrix[r][c] = model[c][r];
-        }
-    }
-
-    // B. Re-generate Instances with new Transform
     std::vector<vk::AccelerationStructureInstanceKHR> instances;
     instances.reserve(blasHandles.size());
+    // Convert GLM (col-major) to Vulkan Transform (row-major 3x4)
+    vk::TransformMatrixKHR transform;
+
+    // B. Re-generate Instances with new Transform
+
     for (size_t i = 0; i < blasHandles.size(); i++) {
         vk::AccelerationStructureDeviceAddressInfoKHR addressInfo{.accelerationStructure = *blasHandles[i]};
         vk::DeviceAddress blasAddress = device.getAccelerationStructureAddressKHR(addressInfo);
 
-        glm::mat4 selectedModel = (i == 0) ? spinModel : staticModel;
+        glm::mat4 selectedModel = (i == 0) ? currentModelMatrix : staticModel;
         vk::TransformMatrixKHR transform;
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 4; c++) {

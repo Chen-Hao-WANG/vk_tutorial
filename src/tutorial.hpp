@@ -19,9 +19,8 @@
 import vulkan_hpp;
 #endif
 
-#define GLFW_INCLUDE_VULKAN  // REQUIRED only for GLFW CreateWindowSurface.
-#include <GLFW/glfw3.h>
-
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
@@ -236,15 +235,14 @@ class HelloTriangleApplication {
                                                         vk::KHRBufferDeviceAddressExtensionName};
 
     void initWindow() {
-        glfwInit();
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-
-        // need to do this after queueupresentKHR, or semaphores will not work correctly
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+        if (!SDL_Init(SDL_INIT_VIDEO)) throw SDLException("Failed to initialize SDL");
+        if (!SDL_Vulkan_LoadLibrary(nullptr)) throw SDLException("Failed to load Vulkan library");
+        window.reset(SDL_CreateWindow("Codotaku", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN));
+        if (!window) throw SDLException("Failed to create window");
+        auto vkGetInstanceProcAddr{reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr())};
+        context.emplace(vkGetInstanceProcAddr);
+        auto const vulkanVersion{context->enumerateInstanceVersion()};
+        std::println("Vulkan {}.{}", VK_API_VERSION_MAJOR(vulkanVersion), VK_API_VERSION_MINOR(vulkanVersion));
     }
 
     void initVulkan() {
@@ -288,13 +286,24 @@ class HelloTriangleApplication {
     }
 
     void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
+        while (!SDL_ShowWindow(window.get())) {
+            HandleEvents();
             drawFrame();
         }
         device.waitIdle();  // wait for device to finish operations before destroying resources
     }
-
+    void HandleEvents() {
+        for (SDL_Event event; SDL_PollEvent(&event);) switch (event.type) {
+                case SDL_EVENT_QUIT:
+                    running = false;
+                    break;
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                    recreateSwapChain();
+                    break;
+                default:
+                    break;
+            }
+    }
     void cleanup() {
         cleanupSwapChain();
 

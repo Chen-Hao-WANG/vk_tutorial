@@ -1,9 +1,9 @@
 #include "tutorial.hpp"
 
 void HelloTriangleApplication::createSurface() {
-    VkSurfaceKHR _surface;
-    if (glfwCreateWindowSurface(*instance, window, nullptr, &_surface) != 0) {
-        throw std::runtime_error("failed to create window surface!");
+    VkSurfaceKHR raw_surface;
+    if (!SDL_Vulkan_CreateSurface(window.get(), **instance, nullptr, &raw_surface)) {
+        throw SDLException("Failed to create Vulkan surface");
     }
-    surface = vk::raii::SurfaceKHR(instance, _surface);
+    surface = vk::raii::SurfaceKHR(instance, raw_surface);
 }

@@ -1,11 +1,11 @@
 #include "tutorial.hpp"
 
 void HelloTriangleApplication::createInstance() {
-    constexpr vk::ApplicationInfo appInfo{.pApplicationName = "Hello Triangle",
+    constexpr vk::ApplicationInfo appInfo{.pApplicationName   = "Hello Triangle",
                                           .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-                                          .pEngineName = "No Engine",
-                                          .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-                                          .apiVersion = vk::ApiVersion14};
+                                          .pEngineName        = "No Engine",
+                                          .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+                                          .apiVersion         = vk::ApiVersion14};
 
     // Get the required layers
     std::vector<char const*> requiredLayers;
@@ -16,9 +16,8 @@ void HelloTriangleApplication::createInstance() {
     // Check if the required layers are supported by the Vulkan implementation.
     auto layerProperties = context.enumerateInstanceLayerProperties();
     for (auto const& requiredLayer : requiredLayers) {
-        if (std::ranges::none_of(layerProperties, [requiredLayer](auto const& layerProperty) {
-                return strcmp(layerProperty.layerName, requiredLayer) == 0;
-            })) {
+        if (std::ranges::none_of(layerProperties,
+                                 [requiredLayer](auto const& layerProperty) { return strcmp(layerProperty.layerName, requiredLayer) == 0; })) {
             throw std::runtime_error("Required layer not supported: " + std::string(requiredLayer));
         }
     }
@@ -29,22 +28,19 @@ void HelloTriangleApplication::createInstance() {
     // Check if the required extensions are supported by the Vulkan implementation.
     auto extensionProperties = context.enumerateInstanceExtensionProperties();
     for (auto const& requiredExtension : requiredExtensions) {
-        if (std::ranges::none_of(
-                extensionProperties, [requiredExtension](auto const& extensionProperty) {
-                    return strcmp(extensionProperty.extensionName, requiredExtension) == 0;
-                })) {
-            throw std::runtime_error("Required extension not supported: " +
-                                     std::string(requiredExtension));
+        if (std::ranges::none_of(extensionProperties, [requiredExtension](auto const& extensionProperty) {
+                return strcmp(extensionProperty.extensionName, requiredExtension) == 0;
+            })) {
+            throw std::runtime_error("Required extension not supported: " + std::string(requiredExtension));
         }
     }
 
     auto hasExt = [&](char const* name) -> bool {
-        return std::ranges::any_of(requiredExtensions,
-                                   [&](char const* e) { return strcmp(e, name) == 0; });
+        return std::ranges::any_of(requiredExtensions, [&](char const* e) { return strcmp(e, name) == 0; });
     };
 
-    constexpr char const* kExtLayerSettings = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
-    constexpr char const* kExtValidationFeatures = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
+    constexpr char const* kExtLayerSettings       = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
+    constexpr char const* kExtValidationFeatures  = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
     constexpr char const* kKhronosValidationLayer = "VK_LAYER_KHRONOS_validation";
 
     // Optional: advanced validation features (pNext chain)
@@ -63,31 +59,31 @@ void HelloTriangleApplication::createInstance() {
         // These setting names are interpreted by VK_LAYER_KHRONOS_validation
         layerSettings = {
             vk::LayerSettingEXT{
-                .pLayerName = kKhronosValidationLayer,
+                .pLayerName   = kKhronosValidationLayer,
                 .pSettingName = "validate_gpu_assisted",
-                .type = vk::LayerSettingTypeEXT::eBool32,
-                .valueCount = 1,
-                .pValues = &enableBool,
+                .type         = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount   = 1,
+                .pValues      = &enableBool,
             },
             vk::LayerSettingEXT{
-                .pLayerName = kKhronosValidationLayer,
+                .pLayerName   = kKhronosValidationLayer,
                 .pSettingName = "validate_gpu_assisted_reserve_binding_slot",
-                .type = vk::LayerSettingTypeEXT::eBool32,
-                .valueCount = 1,
-                .pValues = &enableBool,
+                .type         = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount   = 1,
+                .pValues      = &enableBool,
             },
             vk::LayerSettingEXT{
-                .pLayerName = kKhronosValidationLayer,
+                .pLayerName   = kKhronosValidationLayer,
                 .pSettingName = "validate_sync",
-                .type = vk::LayerSettingTypeEXT::eBool32,
-                .valueCount = 1,
-                .pValues = &enableBool,
+                .type         = vk::LayerSettingTypeEXT::eBool32,
+                .valueCount   = 1,
+                .pValues      = &enableBool,
             },
         };
 
         layerSettingsCI = vk::LayerSettingsCreateInfoEXT{
             .settingCount = static_cast<uint32_t>(layerSettings.size()),
-            .pSettings = layerSettings.data(),
+            .pSettings    = layerSettings.data(),
         };
 
         pNext = &layerSettingsCI;
@@ -101,18 +97,18 @@ void HelloTriangleApplication::createInstance() {
 
         validationFeatures = vk::ValidationFeaturesEXT{
             .enabledValidationFeatureCount = static_cast<uint32_t>(validationFeatureEnables.size()),
-            .pEnabledValidationFeatures = validationFeatureEnables.data(),
+            .pEnabledValidationFeatures    = validationFeatureEnables.data(),
         };
 
         pNext = &validationFeatures;
     }
 
     vk::InstanceCreateInfo createInfo{
-        .pNext = pNext,
-        .pApplicationInfo = &appInfo,
-        .enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
-        .ppEnabledLayerNames = requiredLayers.empty() ? nullptr : requiredLayers.data(),
-        .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
+        .pNext                   = pNext,
+        .pApplicationInfo        = &appInfo,
+        .enabledLayerCount       = static_cast<uint32_t>(requiredLayers.size()),
+        .ppEnabledLayerNames     = requiredLayers.empty() ? nullptr : requiredLayers.data(),
+        .enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size()),
         .ppEnabledExtensionNames = requiredExtensions.empty() ? nullptr : requiredExtensions.data(),
     };
 
@@ -120,22 +116,18 @@ void HelloTriangleApplication::createInstance() {
 }
 
 std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
-    uint32_t glfwExtensionCount = 0;
-    auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    std::vector extensions;
 
     if (enableValidationLayers) {
         extensions.push_back(vk::EXTDebugUtilsExtensionName);
 
-        constexpr char const* kExtLayerSettings = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
+        constexpr char const* kExtLayerSettings      = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
         constexpr char const* kExtValidationFeatures = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
 
         auto available = context.enumerateInstanceExtensionProperties();
 
         auto supported = [&](char const* extName) -> bool {
-            return std::ranges::any_of(
-                available, [&](auto const& ep) { return strcmp(ep.extensionName, extName) == 0; });
+            return std::ranges::any_of(available, [&](auto const& ep) { return strcmp(ep.extensionName, extName) == 0; });
         };
 
         // Prefer modern VK_EXT_layer_settings; fall back to deprecated validation_features if

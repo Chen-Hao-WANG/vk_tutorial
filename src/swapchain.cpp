@@ -2,52 +2,46 @@
 
 void HelloTriangleApplication::createSwapChain() {
     auto surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(*surface);
-    swapChainExtent = chooseSwapExtent(surfaceCapabilities);
-    swapChainSurfaceFormat = chooseSwapSurfaceFormat(physicalDevice.getSurfaceFormatsKHR(*surface));
-    vk::SwapchainCreateInfoKHR swapChainCreateInfo{
-        .surface = *surface,
-        .minImageCount = chooseSwapMinImageCount(surfaceCapabilities),
-        .imageFormat = swapChainSurfaceFormat.format,
-        .imageColorSpace = swapChainSurfaceFormat.colorSpace,
-        .imageExtent = swapChainExtent,
-        .imageArrayLayers = 1,
-        .imageUsage =
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
-        .imageSharingMode = vk::SharingMode::eExclusive,
-        .preTransform = surfaceCapabilities.currentTransform,
-        .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        .presentMode = chooseSwapPresentMode(physicalDevice.getSurfacePresentModesKHR(*surface)),
-        .clipped = true};
+    swapChainExtent          = chooseSwapExtent(surfaceCapabilities);
+    swapChainSurfaceFormat   = chooseSwapSurfaceFormat(physicalDevice.getSurfaceFormatsKHR(*surface));
+    vk::SwapchainCreateInfoKHR swapChainCreateInfo{.surface          = *surface,
+                                                   .minImageCount    = chooseSwapMinImageCount(surfaceCapabilities),
+                                                   .imageFormat      = swapChainSurfaceFormat.format,
+                                                   .imageColorSpace  = swapChainSurfaceFormat.colorSpace,
+                                                   .imageExtent      = swapChainExtent,
+                                                   .imageArrayLayers = 1,
+                                                   .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
+                                                   .imageSharingMode = vk::SharingMode::eExclusive,
+                                                   .preTransform     = surfaceCapabilities.currentTransform,
+                                                   .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+                                                   .presentMode      = chooseSwapPresentMode(physicalDevice.getSurfacePresentModesKHR(*surface)),
+                                                   .clipped          = true};
 
-    swapChain = vk::raii::SwapchainKHR(device, swapChainCreateInfo);
+    swapChain       = vk::raii::SwapchainKHR(device, swapChainCreateInfo);
     swapChainImages = swapChain.getImages();
 }
 
 void HelloTriangleApplication::createImageViews() {
     assert(swapChainImageViews.empty());
 
-    vk::ImageViewCreateInfo imageViewCreateInfo{
-        .viewType = vk::ImageViewType::e2D,
-        .format = swapChainSurfaceFormat.format,
-        .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
+    vk::ImageViewCreateInfo imageViewCreateInfo{.viewType         = vk::ImageViewType::e2D,
+                                                .format           = swapChainSurfaceFormat.format,
+                                                .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
     for (auto image : swapChainImages) {
         imageViewCreateInfo.image = image;
         swapChainImageViews.emplace_back(device, imageViewCreateInfo);
     }
 }
 
-vk::Extent2D HelloTriangleApplication::chooseSwapExtent(
-    const vk::SurfaceCapabilitiesKHR& capabilities) {
+vk::Extent2D HelloTriangleApplication::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) {
     if (capabilities.currentExtent.width != 0xFFFFFFFF) {
         return capabilities.currentExtent;
     }
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    return {std::clamp<uint32_t>(width, capabilities.minImageExtent.width,
-                                 capabilities.maxImageExtent.width),
-            std::clamp<uint32_t>(height, capabilities.minImageExtent.height,
-                                 capabilities.maxImageExtent.height)};
+    return {std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+            std::clamp<uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 void HelloTriangleApplication::recreateSwapChain() {
     int width = 0, height = 0;
@@ -78,19 +72,19 @@ void HelloTriangleApplication::cleanupSwapChain() {
     // that may not have VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT.
     descriptorSets.clear();
     computeDescriptorSet = nullptr;
-    depthImageView = nullptr;
-    depthImage = nullptr;
-    depthImageMemory = nullptr;
+    depthImageView       = nullptr;
+    depthImage           = nullptr;
+    depthImageMemory     = nullptr;
 
-    gBufferPositionImageView = nullptr;
-    gBufferPositionImage = nullptr;
+    gBufferPositionImageView   = nullptr;
+    gBufferPositionImage       = nullptr;
     gBufferPositionImageMemory = nullptr;
 
-    gBufferNormalImageView = nullptr;
-    gBufferNormalImage = nullptr;
+    gBufferNormalImageView   = nullptr;
+    gBufferNormalImage       = nullptr;
     gBufferNormalImageMemory = nullptr;
 
-    storageImageView = nullptr;
-    storageImage = nullptr;
+    storageImageView   = nullptr;
+    storageImage       = nullptr;
     storageImageMemory = nullptr;
 }

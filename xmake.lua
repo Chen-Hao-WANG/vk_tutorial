@@ -6,7 +6,7 @@ add_rules("mode.debug", "mode.release")
 
 add_requires("vulkansdk")
 
-add_requires("glfw")
+add_requires("libsdl3")
 add_requires("glm")
 add_requires("tinyobjloader")
 add_requires("stb")
@@ -59,7 +59,7 @@ rule("slangc")
 target("VulkanTutorial")
     set_kind("binary")
     add_files("src/*.cpp")
-    add_packages("glfw", "glm", "tinyobjloader", "stb", "tinygltf", "ktx", "vulkansdk")
+    add_packages("libsdl3", "glm", "tinyobjloader", "stb", "tinygltf", "ktx", "vulkansdk")
     -- attach the rule so slang files compile before building the C++ target
     add_rules("slangc")
     -- Enable Vulkan validation layers automatically in Debug builds

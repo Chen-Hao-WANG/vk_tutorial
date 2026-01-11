@@ -46,7 +46,10 @@ constexpr bool enableValidationLayers = true;
 #pragma message("ENABLE_VALIDATION_LAYERS is NOT defined")
 constexpr bool enableValidationLayers = false;
 #endif
-
+class SDLException final : public std::runtime_error {
+   public:
+    explicit SDLException(const std::string& message) : std::runtime_error(std::format("{}: {}", message, SDL_GetError())) {}
+};
 struct BufferResource {
     vk::raii::Buffer buffer       = nullptr;
     vk::raii::DeviceMemory memory = nullptr;
@@ -134,6 +137,8 @@ struct MeshPushConstants {
     glm::mat4 modelMatrix;
 };
 class HelloTriangleApplication {
+    bool running = true;
+
    public:
     void run() {
         initWindow();
@@ -143,7 +148,7 @@ class HelloTriangleApplication {
     }
 
    private:
-    GLFWwindow* window = nullptr;
+    std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window{nullptr, SDL_DestroyWindow};
     vk::raii::Context context;
     vk::raii::Instance instance                     = nullptr;
     vk::raii::DebugUtilsMessengerEXT debugMessenger = nullptr;
@@ -218,6 +223,7 @@ class HelloTriangleApplication {
     vk::raii::DescriptorSetLayout computeDescriptorSetLayout = nullptr;
     vk::raii::PipelineLayout computePipelineLayout           = nullptr;
     vk::raii::DescriptorSet computeDescriptorSet             = nullptr;
+    std::vector<vk::raii::DescriptorSet> computeDescriptorSets;
     // storage_Image processed by compute shader
     vk::raii::Image storageImage              = nullptr;
     vk::raii::DeviceMemory storageImageMemory = nullptr;
@@ -237,12 +243,12 @@ class HelloTriangleApplication {
     void initWindow() {
         if (!SDL_Init(SDL_INIT_VIDEO)) throw SDLException("Failed to initialize SDL");
         if (!SDL_Vulkan_LoadLibrary(nullptr)) throw SDLException("Failed to load Vulkan library");
-        window.reset(SDL_CreateWindow("Codotaku", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN));
+        window.reset(SDL_CreateWindow("ReSTIR_Vulkan", 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN));
         if (!window) throw SDLException("Failed to create window");
-        auto vkGetInstanceProcAddr{reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr())};
-        context.emplace(vkGetInstanceProcAddr);
-        auto const vulkanVersion{context->enumerateInstanceVersion()};
-        std::println("Vulkan {}.{}", VK_API_VERSION_MAJOR(vulkanVersion), VK_API_VERSION_MINOR(vulkanVersion));
+        // vk::raii::Context default constructor loads vulkan library automatically
+        context = vk::raii::Context();
+        auto const vulkanVersion{context.enumerateInstanceVersion()};
+        std::cout << "Vulkan " << VK_API_VERSION_MAJOR(vulkanVersion) << "." << VK_API_VERSION_MINOR(vulkanVersion) << std::endl;
     }
 
     void initVulkan() {
@@ -286,7 +292,8 @@ class HelloTriangleApplication {
     }
 
     void mainLoop() {
-        while (!SDL_ShowWindow(window.get())) {
+        SDL_ShowWindow(window.get());
+        while (running) {
             HandleEvents();
             drawFrame();
         }
@@ -307,9 +314,7 @@ class HelloTriangleApplication {
     void cleanup() {
         cleanupSwapChain();
 
-        glfwDestroyWindow(window);
-
-        glfwTerminate();
+        SDL_Quit();
     }
     void createInstance();
     void setupDebugMessenger() {
@@ -335,10 +340,7 @@ class HelloTriangleApplication {
         instance.submitDebugUtilsMessageEXT(
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo, vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral, testCallbackData);
     }
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app                = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
+
     void createSurface();
 
     void pickPhysicalDevice();
@@ -600,16 +602,16 @@ class HelloTriangleApplication {
     std::vector<vk::raii::Buffer> blasBuffers;
     std::vector<vk::raii::DeviceMemory> blasMemories;
 
-    vk::raii::AccelerationStructureKHR tlas  = nullptr;
-    vk::raii::Buffer tlasBuffer              = nullptr;
-    vk::raii::DeviceMemory tlasMemory        = nullptr;
-    vk::raii::Buffer tlasScratchBuffer       = nullptr;
-    vk::raii::DeviceMemory tlasScratchMemory = nullptr;
+    std::vector<vk::raii::AccelerationStructureKHR> tlas;
+    std::vector<vk::raii::Buffer> tlasBuffer;
+    std::vector<vk::raii::DeviceMemory> tlasMemory;
+    std::vector<vk::raii::Buffer> tlasScratchBuffer;
+    std::vector<vk::raii::DeviceMemory> tlasScratchMemory;
 
     void updateTLAS(const vk::raii::CommandBuffer& commandBuffer);
 
-    vk::raii::Buffer instanceBuffer       = nullptr;
-    vk::raii::DeviceMemory instanceMemory = nullptr;
+    std::vector<vk::raii::Buffer> instanceBuffer;
+    std::vector<vk::raii::DeviceMemory> instanceMemory;
 
     vk::DeviceAddress getVertAddress(const vk::raii::Buffer& buffer) {
         vk::BufferDeviceAddressInfo vertex_addr_info{.buffer = *buffer};

@@ -38,17 +38,24 @@ vk::Extent2D HelloTriangleApplication::chooseSwapExtent(const vk::SurfaceCapabil
         return capabilities.currentExtent;
     }
     int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
+    SDL_GetWindowSizeInPixels(window.get(), &width, &height);
 
     return {std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
             std::clamp<uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 void HelloTriangleApplication::recreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
+    SDL_GetWindowSizeInPixels(window.get(), &width, &height);
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(window, &width, &height);
-        glfwWaitEvents();
+        if (!running) return;
+        SDL_Event event;
+        SDL_WaitEvent(&event);
+
+        if (event.type == SDL_EVENT_QUIT) {
+            running = false;
+            return;
+        }
+        SDL_GetWindowSizeInPixels(window.get(), &width, &height);
     }
 
     device.waitIdle();

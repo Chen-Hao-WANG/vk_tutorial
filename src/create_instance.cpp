@@ -116,7 +116,12 @@ void HelloTriangleApplication::createInstance() {
 }
 
 std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
-    std::vector extensions;
+    Uint32 count = 0;
+    // Retrieve the list of extensions required by SDL for the current platform
+    char const* const* sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&count);
+
+    // Initialize our list with the SDL extensions
+    std::vector<const char*> extensions(sdlExtensions, sdlExtensions + count);
 
     if (enableValidationLayers) {
         extensions.push_back(vk::EXTDebugUtilsExtensionName);
@@ -130,8 +135,6 @@ std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
             return std::ranges::any_of(available, [&](auto const& ep) { return strcmp(ep.extensionName, extName) == 0; });
         };
 
-        // Prefer modern VK_EXT_layer_settings; fall back to deprecated validation_features if
-        // needed.
         if (supported(kExtLayerSettings)) {
             extensions.push_back(kExtLayerSettings);
         } else if (supported(kExtValidationFeatures)) {

@@ -150,8 +150,11 @@ void HelloTriangleApplication::createComputeDescriptorSets() {
     vk::DescriptorSetAllocateInfo allocInfo{
         .descriptorPool = descriptorPool, .descriptorSetCount = static_cast<uint32_t>(layouts.size()), .pSetLayouts = layouts.data()};
 
-    computeDescriptorSet.clear();
-    computeDescriptorSet = std::move(device.allocateDescriptorSets(allocInfo).front());
+    computeDescriptorSets = device.allocateDescriptorSets(allocInfo);
+
+    // For legacy compatibility if you use computeDescriptorSet[0] elsewhere temporarily,
+    // but better to switch usage to updateDescriptorSets[currentFrame]
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // Write descriptor set info
         vk::DescriptorImageInfo posInfo{
@@ -169,12 +172,16 @@ void HelloTriangleApplication::createComputeDescriptorSets() {
             .imageView   = storageImageView,
             .imageLayout = vk::ImageLayout::eGeneral  // for compute shader must be general layout
         };
+
+        // FIX: Use tlas[i]
         vk::WriteDescriptorSetAccelerationStructureKHR asInfo{
             .accelerationStructureCount = 1,
-            .pAccelerationStructures    = &*tlas  // point to TLAS
+            .pAccelerationStructures    = &*tlas[i]  // point to TLAS for this frame
         };
+
+        // FIX: Update the specific descriptor set for this frame
         vk::WriteDescriptorSet asWrite{.pNext           = &asInfo,  // AS is linked via pNext
-                                       .dstSet          = *computeDescriptorSet,
+                                       .dstSet          = *computeDescriptorSets[i],
                                        .dstBinding      = 5,  // layout binding 5
                                        .descriptorCount = 1,
                                        .descriptorType  = vk::DescriptorType::eAccelerationStructureKHR};
@@ -182,35 +189,35 @@ void HelloTriangleApplication::createComputeDescriptorSets() {
         // Write descriptor set
         std::array<vk::WriteDescriptorSet, 6> descriptorWrites;
         // G-Buffer Position
-        descriptorWrites[0] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSet,
+        descriptorWrites[0] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSets[i],
                                                      .dstBinding      = 0,
                                                      .dstArrayElement = 0,
                                                      .descriptorCount = 1,
                                                      .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
                                                      .pImageInfo      = &posInfo};
         // G-Buffer Normal
-        descriptorWrites[1] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSet,
+        descriptorWrites[1] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSets[i],
                                                      .dstBinding      = 1,
                                                      .dstArrayElement = 0,
                                                      .descriptorCount = 1,
                                                      .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
                                                      .pImageInfo      = &normalInfo};
         // G-Buffer Alebedo
-        descriptorWrites[2] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSet,
+        descriptorWrites[2] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSets[i],
                                                      .dstBinding      = 2,
                                                      .dstArrayElement = 0,
                                                      .descriptorCount = 1,
                                                      .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
                                                      .pImageInfo      = &albedoInfo};
         // Light Buffer
-        descriptorWrites[3] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSet,
+        descriptorWrites[3] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSets[i],
                                                      .dstBinding      = 3,
                                                      .dstArrayElement = 0,
                                                      .descriptorCount = 1,
                                                      .descriptorType  = vk::DescriptorType::eStorageBuffer,
                                                      .pBufferInfo     = &lightBufferInfo};
         // Storage Image
-        descriptorWrites[4] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSet,
+        descriptorWrites[4] = vk::WriteDescriptorSet{.dstSet          = *computeDescriptorSets[i],
                                                      .dstBinding      = 4,
                                                      .dstArrayElement = 0,
                                                      .descriptorCount = 1,

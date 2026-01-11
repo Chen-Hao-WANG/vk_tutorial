@@ -177,7 +177,7 @@ void HelloTriangleApplication::recordCommandBuffer(uint32_t imageIndex) {
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline);
 
     // Bind Compute Descriptor Set (Set 0: G-Buffers, Lights, Output Image)
-    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *computePipelineLayout, 0, *computeDescriptorSet, nullptr);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *computePipelineLayout, 0, *computeDescriptorSets[currentFrame], nullptr);
 
     // Calculate Workgroup counts based on window size (assuming 16x16 local groups in shader)
     uint32_t groupCountX = (swapChainExtent.width + 15) / 16;

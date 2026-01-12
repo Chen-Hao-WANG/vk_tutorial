@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "camera.hpp"
+
 #if defined(__INTELLISENSE__) || !defined(USE_CPP20_MODULES)
 #include <vulkan/vulkan_raii.hpp>
 #else
@@ -20,6 +22,7 @@ import vulkan_hpp;
 #endif
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -230,6 +233,14 @@ class HelloTriangleApplication {
     vk::raii::ImageView storageImageView      = nullptr;
     // maintain the time and matrix for animation
     glm::mat4 currentModelMatrix;
+
+    // Camera and Input State
+    Camera camera;
+    bool wPressed = false, sPressed = false, aPressed = false, dPressed = false;
+    bool leftMouseButtonPressed  = false;
+    bool rightMouseButtonPressed = false;
+    float lastX                  = WIDTH / 2.0f;
+    float lastY                  = HEIGHT / 2.0f;
     //
     std::vector<const char*> requiredDeviceExtension = {vk::KHRSwapchainExtensionName,
                                                         vk::KHRSpirv14ExtensionName,
@@ -295,6 +306,14 @@ class HelloTriangleApplication {
         SDL_ShowWindow(window.get());
         while (running) {
             HandleEvents();
+
+            // Continuous movement
+            if (wPressed) camera.moveForward();
+            if (sPressed) camera.moveBackward();
+            if (aPressed) camera.moveLeft();
+            if (dPressed) camera.moveRight();
+
+            updateUniformBuffer(currentFrame);
             drawFrame();
         }
         device.waitIdle();  // wait for device to finish operations before destroying resources
@@ -307,6 +326,70 @@ class HelloTriangleApplication {
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                     recreateSwapChain();
                     break;
+
+                // Keyboard: Set flags
+                case SDL_EVENT_KEY_DOWN:
+                    switch (event.key.key) {
+                        case SDLK_W:
+                            wPressed = true;
+                            break;
+                        case SDLK_S:
+                            sPressed = true;
+                            break;
+                        case SDLK_A:
+                            aPressed = true;
+                            break;
+                        case SDLK_D:
+                            dPressed = true;
+                            break;
+                    }
+                    break;
+                case SDL_EVENT_KEY_UP:
+                    switch (event.key.key) {
+                        case SDLK_W:
+                            wPressed = false;
+                            break;
+                        case SDLK_S:
+                            sPressed = false;
+                            break;
+                        case SDLK_A:
+                            aPressed = false;
+                            break;
+                        case SDLK_D:
+                            dPressed = false;
+                            break;
+                    }
+                    break;
+
+                // Mouse: Rotation with tracking
+                case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        leftMouseButtonPressed = true;
+                        lastX                  = event.button.x;
+                        lastY                  = event.button.y;
+                    }
+                    if (event.button.button == SDL_BUTTON_RIGHT) {
+                        rightMouseButtonPressed = true;
+                    }
+                    break;
+                case SDL_EVENT_MOUSE_BUTTON_UP:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        leftMouseButtonPressed = false;
+                    }
+                    if (event.button.button == SDL_BUTTON_RIGHT) {
+                        rightMouseButtonPressed = false;
+                    }
+                    break;
+                case SDL_EVENT_MOUSE_MOTION:
+                    if (leftMouseButtonPressed) {
+                        float xoffset = lastX - event.motion.x;  // Inverted
+                        float yoffset = event.motion.y - lastY;
+                        lastX         = event.motion.x;
+                        lastY         = event.motion.y;
+                        camera.rotate(xoffset, yoffset);
+                    }
+                    break;
+
                 default:
                     break;
             }

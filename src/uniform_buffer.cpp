@@ -30,13 +30,9 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
 
     // ubo.model = currentModelMatrix;
 
-    ubo.view = lookAt(
-        glm::vec3(0.0f, -4.0f, 2.0f),  // Eye Position (Backing up to see the whole box)
-        glm::vec3(0.0f,  0.0f, 1.0f),  // Look at Target (Center of the box, slightly up)
-        glm::vec3(0.0f,  0.0f, 1.0f)   // Up Vector (Z is Up)
-    );
+    ubo.view = camera.getViewMatrix();
     ubo.proj =
-        glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
+        glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

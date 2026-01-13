@@ -79,19 +79,24 @@ void HelloTriangleApplication::cleanupSwapChain() {
     // that may not have VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT.
     descriptorSets.clear();
     computeDescriptorSet = nullptr;
-    depthImageView       = nullptr;
-    depthImage           = nullptr;
-    depthImageMemory     = nullptr;
+    
+    depthImageView.clear();
+    depthImage.clear();
+    depthImageMemory.clear();
 
-    gBufferPositionImageView   = nullptr;
-    gBufferPositionImage       = nullptr;
-    gBufferPositionImageMemory = nullptr;
+    gBufferPositionImageView.clear();
+    gBufferPositionImage.clear();
+    gBufferPositionImageMemory.clear();
 
-    gBufferNormalImageView   = nullptr;
-    gBufferNormalImage       = nullptr;
-    gBufferNormalImageMemory = nullptr;
+    gBufferNormalImageView.clear();
+    gBufferNormalImage.clear();
+    gBufferNormalImageMemory.clear();
+    
+    gBufferAlbedoImageView.clear();
+    gBufferAlbedoImage.clear();
+    gBufferAlbedoImageMemory.clear();
 
-    storageImageView   = nullptr;
-    storageImage       = nullptr;
-    storageImageMemory = nullptr;
+    storageImageView.clear();
+    storageImage.clear();
+    storageImageMemory.clear();
 }

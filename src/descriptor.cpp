@@ -157,19 +157,20 @@ void HelloTriangleApplication::createComputeDescriptorSets() {
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // Write descriptor set info
+        // Write descriptor set info
         vk::DescriptorImageInfo posInfo{
-            .sampler = *viking_room.textureSampler, .imageView = gBufferPositionImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+            .sampler = *viking_room.textureSampler, .imageView = *gBufferPositionImageView[i], .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
 
         vk::DescriptorImageInfo normalInfo{
-            .sampler = *viking_room.textureSampler, .imageView = gBufferNormalImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+            .sampler = *viking_room.textureSampler, .imageView = *gBufferNormalImageView[i], .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
 
         vk::DescriptorImageInfo albedoInfo{
-            .sampler = *viking_room.textureSampler, .imageView = gBufferAlbedoImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
+            .sampler = *viking_room.textureSampler, .imageView = *gBufferAlbedoImageView[i], .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal};
 
         vk::DescriptorBufferInfo lightBufferInfo{.buffer = lightBufferResource.buffer, .offset = 0, .range = sizeof(Light) * lights.size()};
 
         vk::DescriptorImageInfo outputInfo{
-            .imageView   = storageImageView,
+            .imageView   = *storageImageView[i],
             .imageLayout = vk::ImageLayout::eGeneral  // for compute shader must be general layout
         };
 

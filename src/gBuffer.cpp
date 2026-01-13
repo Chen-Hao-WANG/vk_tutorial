@@ -1,35 +1,53 @@
 #include "tutorial.hpp"
 
 void HelloTriangleApplication::createGbufferResources() {
-    // position
-    createImage(swapChainExtent.width, swapChainExtent.height, vk::Format::eR32G32B32A32Sfloat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
-                    vk::ImageUsageFlagBits::eStorage,
-                vk::MemoryPropertyFlagBits::eDeviceLocal, gBufferPositionImage,
-                gBufferPositionImageMemory);
-    gBufferPositionImageView = createImageView(
-        gBufferPositionImage, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-    // normal
-    createImage(swapChainExtent.width, swapChainExtent.height, vk::Format::eR32G32B32A32Sfloat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
-                    vk::ImageUsageFlagBits::eStorage,
-                vk::MemoryPropertyFlagBits::eDeviceLocal, gBufferNormalImage,
-                gBufferNormalImageMemory);
+    // Clear existing referencing vectors
+    gBufferPositionImage.clear();
+    gBufferPositionImageMemory.clear();
+    gBufferPositionImageView.clear();
+    //
+    gBufferNormalImage.clear();
+    gBufferNormalImageMemory.clear();
+    gBufferNormalImageView.clear();
+    //
+    gBufferAlbedoImage.clear();
+    gBufferAlbedoImageMemory.clear();
+    gBufferAlbedoImageView.clear();
 
-    gBufferNormalImageView = createImageView(gBufferNormalImage, vk::Format::eR32G32B32A32Sfloat,
-                                             vk::ImageAspectFlagBits::eColor);
-    // albedo
-    createImage(swapChainExtent.width, swapChainExtent.height, vk::Format::eR32G32B32A32Sfloat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
-                    vk::ImageUsageFlagBits::eStorage,
-                vk::MemoryPropertyFlagBits::eDeviceLocal, gBufferAlbedoImage,
-                gBufferAlbedoImageMemory);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        // Position
+        vk::raii::Image posImage              = nullptr;
+        vk::raii::DeviceMemory posImageMemory = nullptr;
+        createImage(swapChainExtent.width, std::max(swapChainExtent.height, 1u), vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
+                    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
+                        vk::ImageUsageFlagBits::eStorage,
+                    vk::MemoryPropertyFlagBits::eDeviceLocal, posImage, posImageMemory);
+        gBufferPositionImageView.push_back(createImageView(posImage, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor));
+        gBufferPositionImage.push_back(std::move(posImage));
+        gBufferPositionImageMemory.push_back(std::move(posImageMemory));
 
-    gBufferAlbedoImageView = createImageView(gBufferAlbedoImage, vk::Format::eR32G32B32A32Sfloat,
-                                             vk::ImageAspectFlagBits::eColor);
+        // Normal
+        vk::raii::Image normImage              = nullptr;
+        vk::raii::DeviceMemory normImageMemory = nullptr;
+        createImage(swapChainExtent.width, std::max(swapChainExtent.height, 1u), vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
+                    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
+                        vk::ImageUsageFlagBits::eStorage,
+                    vk::MemoryPropertyFlagBits::eDeviceLocal, normImage, normImageMemory);
+        gBufferNormalImageView.push_back(createImageView(normImage, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor));
+        gBufferNormalImage.push_back(std::move(normImage));
+        gBufferNormalImageMemory.push_back(std::move(normImageMemory));
+
+        // Albedo
+        vk::raii::Image albedoImage              = nullptr;
+        vk::raii::DeviceMemory albedoImageMemory = nullptr;
+        createImage(swapChainExtent.width, std::max(swapChainExtent.height, 1u), vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
+                    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled |
+                        vk::ImageUsageFlagBits::eStorage,
+                    vk::MemoryPropertyFlagBits::eDeviceLocal, albedoImage, albedoImageMemory);
+        gBufferAlbedoImageView.push_back(createImageView(albedoImage, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor));
+        gBufferAlbedoImage.push_back(std::move(albedoImage));
+        gBufferAlbedoImageMemory.push_back(std::move(albedoImageMemory));
+    }
 }
 /**
  * @brief create storage image for compute shader to write to.
@@ -38,24 +56,29 @@ void HelloTriangleApplication::createGbufferResources() {
  * presentation
  */
 void HelloTriangleApplication::createStorageImage() {
-    createImage(swapChainExtent.width, swapChainExtent.height, vk::Format::eR32G32B32A32Sfloat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc |
-                    vk::ImageUsageFlagBits::eSampled,
-                vk::MemoryPropertyFlagBits::eDeviceLocal,  // GPU local memory for best performance
-                storageImage, storageImageMemory);
+    storageImage.clear();
+    storageImageMemory.clear();
+    storageImageView.clear();
 
-    storageImageView = createImageView(storageImage, vk::Format::eR32G32B32A32Sfloat,
-                                       vk::ImageAspectFlagBits::eColor);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vk::raii::Image img              = nullptr;
+        vk::raii::DeviceMemory imgMemory = nullptr;
 
-    //
-    transitionImageLayout(*storageImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral,
-                          vk::AccessFlagBits2::eNone,                  // srcAccess
-                          vk::AccessFlagBits2::eShaderWrite,           // dstAccess
-                          vk::PipelineStageFlagBits2::eTopOfPipe,      // srcStage
-                          vk::PipelineStageFlagBits2::eComputeShader,  // dstStage
-                          vk::ImageAspectFlagBits::eColor);
-    std::cout << "[Info] Storage Image created (Ready for Compute Shader output)" << std::endl;
+        createImage(swapChainExtent.width, std::max(swapChainExtent.height, 1u), vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
+                    vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
+                    vk::MemoryPropertyFlagBits::eDeviceLocal, img, imgMemory);
+
+        storageImageView.push_back(createImageView(img, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor));
+        
+        // Initial transition
+        transitionImageLayout(*img, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, vk::AccessFlagBits2::eNone,
+                              vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+                              vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor);
+        
+        storageImage.push_back(std::move(img));
+        storageImageMemory.push_back(std::move(imgMemory));
+    }
+    std::cout << "[Info] Storage Images created (Ready for Compute Shader output)" << std::endl;
 }
 
 void HelloTriangleApplication::transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout,

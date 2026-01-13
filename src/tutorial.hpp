@@ -197,21 +197,21 @@ class HelloTriangleApplication {
     // texture
     Texture viking_room;
     // depth buffering
-    vk::raii::Image depthImage              = nullptr;
-    vk::raii::DeviceMemory depthImageMemory = nullptr;
-    vk::raii::ImageView depthImageView      = nullptr;
+    std::vector<vk::raii::Image> depthImage;
+    std::vector<vk::raii::DeviceMemory> depthImageMemory;
+    std::vector<vk::raii::ImageView> depthImageView;
     // G-Buffer Normal
-    vk::raii::Image gBufferNormalImage              = nullptr;
-    vk::raii::DeviceMemory gBufferNormalImageMemory = nullptr;
-    vk::raii::ImageView gBufferNormalImageView      = nullptr;
+    std::vector<vk::raii::Image> gBufferNormalImage;
+    std::vector<vk::raii::DeviceMemory> gBufferNormalImageMemory;
+    std::vector<vk::raii::ImageView> gBufferNormalImageView;
     // G-Buffer Position
-    vk::raii::Image gBufferPositionImage              = nullptr;
-    vk::raii::DeviceMemory gBufferPositionImageMemory = nullptr;
-    vk::raii::ImageView gBufferPositionImageView      = nullptr;
+    std::vector<vk::raii::Image> gBufferPositionImage;
+    std::vector<vk::raii::DeviceMemory> gBufferPositionImageMemory;
+    std::vector<vk::raii::ImageView> gBufferPositionImageView;
     // G-Buffer alebedo
-    vk::raii::Image gBufferAlbedoImage              = nullptr;
-    vk::raii::DeviceMemory gBufferAlbedoImageMemory = nullptr;
-    vk::raii::ImageView gBufferAlbedoImageView      = nullptr;
+    std::vector<vk::raii::Image> gBufferAlbedoImage;
+    std::vector<vk::raii::DeviceMemory> gBufferAlbedoImageMemory;
+    std::vector<vk::raii::ImageView> gBufferAlbedoImageView;
 
     // class member for model
     std::vector<Vertex> vertices;
@@ -228,9 +228,9 @@ class HelloTriangleApplication {
     vk::raii::DescriptorSet computeDescriptorSet             = nullptr;
     std::vector<vk::raii::DescriptorSet> computeDescriptorSets;
     // storage_Image processed by compute shader
-    vk::raii::Image storageImage              = nullptr;
-    vk::raii::DeviceMemory storageImageMemory = nullptr;
-    vk::raii::ImageView storageImageView      = nullptr;
+    std::vector<vk::raii::Image> storageImage;
+    std::vector<vk::raii::DeviceMemory> storageImageMemory;
+    std::vector<vk::raii::ImageView> storageImageView;
     // maintain the time and matrix for animation
     glm::mat4 currentModelMatrix;
 

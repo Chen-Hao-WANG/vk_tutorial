@@ -5,12 +5,23 @@
  */
 void HelloTriangleApplication::createDepthResources() {
     vk::Format depthFormat = findDepthFormat();
-    //
-    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
-                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
-    //
-    depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+    
+    depthImage.clear();
+    depthImageMemory.clear();
+    depthImageView.clear();
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vk::raii::Image img              = nullptr;
+        vk::raii::DeviceMemory imgMemory = nullptr;
+
+        createImage(swapChainExtent.width, std::max(swapChainExtent.height, 1u), depthFormat,
+                    vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                    vk::MemoryPropertyFlagBits::eDeviceLocal, img, imgMemory);
+        
+        depthImageView.push_back(createImageView(img, depthFormat, vk::ImageAspectFlagBits::eDepth));
+        depthImage.push_back(std::move(img));
+        depthImageMemory.push_back(std::move(imgMemory));
+    }
 }
 /**
  * @brief check if a format has a stencil component
